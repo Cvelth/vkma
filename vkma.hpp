@@ -41,7 +41,7 @@
 #include <system_error>
 #include <tuple>
 #include <type_traits>
-#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 #if 17 <= VKMA_CPP_VERSION
 #include <string_view>
@@ -96,8 +96,6 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 # include <compare>
 #endif
 
-
-static_assert( VMA_HEADER_VERSION ==  , "Wrong VMA_HEADER_VERSION!" );
 
 // 32-bit vulkan is not typesafe for handles, so don't allow copy constructors on this platform by default.
 // To enable this feature on 32-bit platforms please define VKMA_TYPESAFE_CONVERSION
@@ -864,238 +862,14 @@ namespace VKMA_NAMESPACE
     RefType *m_ptr;
   };
 
-  template <typename X, typename Y> struct StructExtends { enum { value = false }; };
-
-  template<typename Type, class...>
-  struct IsPartOfStructureChain
-  {
-    static const bool valid = false;
-  };
-
-  template<typename Type, typename Head, typename... Tail>
-  struct IsPartOfStructureChain<Type, Head, Tail...>
-  {
-    static const bool valid = std::is_same<Type, Head>::value || IsPartOfStructureChain<Type, Tail...>::valid;
-  };
-
-  template <size_t Index, typename T, typename... ChainElements>
-  struct StructureChainContains
-  {
-    static const bool value = std::is_same<T, typename std::tuple_element<Index, std::tuple<ChainElements...>>::type>::value ||
-                              StructureChainContains<Index - 1, T, ChainElements...>::value;
-  };
-
-  template <typename T, typename... ChainElements>
-  struct StructureChainContains<0, T, ChainElements...>
-  {
-    static const bool value = std::is_same<T, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value;
-  };
-
-  template <size_t Index, typename... ChainElements>
-  struct StructureChainValidation
-  {
-    using TestType = typename std::tuple_element<Index, std::tuple<ChainElements...>>::type;
-    static const bool valid =
-      StructExtends<TestType, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value &&
-      ( TestType::allowDuplicate || !StructureChainContains<Index - 1, TestType, ChainElements...>::value ) &&
-      StructureChainValidation<Index - 1, ChainElements...>::valid;
-  };
-
-  template <typename... ChainElements>
-  struct StructureChainValidation<0, ChainElements...>
-  {
-    static const bool valid = true;
-  };
-
-  template <typename... ChainElements>
-  class StructureChain : public std::tuple<ChainElements...>
-  {
-  public:
-    StructureChain() VKMA_NOEXCEPT
-    {
-      static_assert( StructureChainValidation<sizeof...( ChainElements ) - 1, ChainElements...>::valid,
-                     "The structure chain is not valid!" );
-      link<sizeof...( ChainElements ) - 1>();
-    }
-
-    StructureChain( StructureChain const & rhs ) VKMA_NOEXCEPT : std::tuple<ChainElements...>( rhs )
-    {
-      static_assert( StructureChainValidation<sizeof...( ChainElements ) - 1, ChainElements...>::valid,
-                     "The structure chain is not valid!" );
-      link<sizeof...( ChainElements ) - 1>();
-    }
-
-    StructureChain( StructureChain && rhs ) VKMA_NOEXCEPT
-      : std::tuple<ChainElements...>( std::forward<std::tuple<ChainElements...>>( rhs ) )
-    {
-      static_assert( StructureChainValidation<sizeof...( ChainElements ) - 1, ChainElements...>::valid,
-                     "The structure chain is not valid!" );
-      link<sizeof...( ChainElements ) - 1>();
-    }
-
-    StructureChain( ChainElements const &... elems ) VKMA_NOEXCEPT : std::tuple<ChainElements...>( elems... )
-    {
-      static_assert( StructureChainValidation<sizeof...( ChainElements ) - 1, ChainElements...>::valid,
-                     "The structure chain is not valid!" );
-      link<sizeof...( ChainElements ) - 1>();
-    }
-
-    StructureChain & operator=( StructureChain const & rhs ) VKMA_NOEXCEPT
-    {
-      std::tuple<ChainElements...>::operator=( rhs );
-      link<sizeof...( ChainElements ) - 1>();
-      return *this;
-    }
-
-    StructureChain & operator=( StructureChain && rhs ) = delete;
-
-    template <typename T = typename std::tuple_element<0, std::tuple<ChainElements...>>::type, size_t Which = 0>
-    T & get() VKMA_NOEXCEPT
-    {
-      return std::get<ChainElementIndex<0, T, Which, void, ChainElements...>::value>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-    }
-
-    template <typename T = typename std::tuple_element<0, std::tuple<ChainElements...>>::type, size_t Which = 0>
-    T const & get() const VKMA_NOEXCEPT
-    {
-      return std::get<ChainElementIndex<0, T, Which, void, ChainElements...>::value>( static_cast<std::tuple<ChainElements...> const &>( *this ) );
-    }
-
-    template <typename T0, typename T1, typename... Ts>
-    std::tuple<T0 &, T1 &, Ts &...> get() VKMA_NOEXCEPT
-    {
-      return std::tie( get<T0>(), get<T1>(), get<Ts>()... );
-    }
-
-    template <typename T0, typename T1, typename... Ts>
-    std::tuple<T0 const &, T1 const &, Ts const &...> get() const VKMA_NOEXCEPT
-    {
-      return std::tie( get<T0>(), get<T1>(), get<Ts>()... );
-    }
-
-    template <typename ClassType, size_t Which = 0>
-    void relink() VKMA_NOEXCEPT
-    {
-      static_assert( IsPartOfStructureChain<ClassType, ChainElements...>::valid,
-                     "Can't relink Structure that's not part of this StructureChain!" );
-      static_assert(
-        !std::is_same<ClassType, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value || (Which != 0),
-        "It's not allowed to have the first element unlinked!" );
-
-      auto pNext = reinterpret_cast<VmaBaseInStructure *>( &get<ClassType, Which>() );
-      VKMA_ASSERT( !isLinked( pNext ) );
-      auto & headElement = std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-      pNext->pNext       = reinterpret_cast<VmaBaseInStructure const*>(headElement.pNext);
-      headElement.pNext  = pNext;
-    }
-
-    template <typename ClassType, size_t Which = 0>
-    void unlink() VKMA_NOEXCEPT
-    {
-      static_assert( IsPartOfStructureChain<ClassType, ChainElements...>::valid,
-                     "Can't unlink Structure that's not part of this StructureChain!" );
-      static_assert(
-        !std::is_same<ClassType, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value || (Which != 0),
-        "It's not allowed to unlink the first element!" );
-
-      unlink<sizeof...( ChainElements ) - 1>( reinterpret_cast<VmaBaseOutStructure const *>( &get<ClassType, Which>() ) );
-    }
-
-  private:
-    template <int Index, typename T, int Which, typename, class First, class... Types>
-    struct ChainElementIndex : ChainElementIndex<Index + 1, T, Which, void, Types...>
-    {};
-
-    template <int Index, typename T, int Which, class First, class... Types>
-    struct ChainElementIndex<Index,
-                             T,
-                             Which,
-                             typename std::enable_if<!std::is_same<T, First>::value, void>::type,
-                             First,
-                             Types...> : ChainElementIndex<Index + 1, T, Which, void, Types...>
-    {};
-
-    template <int Index, typename T, int Which, class First, class... Types>
-    struct ChainElementIndex<Index,
-                             T,
-                             Which,
-                             typename std::enable_if<std::is_same<T, First>::value, void>::type,
-                             First,
-                             Types...> : ChainElementIndex<Index + 1, T, Which - 1, void, Types...>
-    {};
-
-    template <int Index, typename T, class First, class... Types>
-    struct ChainElementIndex<Index,
-                             T,
-                             0,
-                             typename std::enable_if<std::is_same<T, First>::value, void>::type,
-                             First,
-                             Types...> : std::integral_constant<int, Index>
-    {};
-
-    bool isLinked( VmaBaseInStructure const * pNext )
-    {
-      VmaBaseInStructure const * elementPtr = reinterpret_cast<VmaBaseInStructure const*>(&std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) ) );
-      while ( elementPtr )
-      {
-        if ( elementPtr->pNext == pNext )
-        {
-          return true;
-        }
-        elementPtr = elementPtr->pNext;
-      }
-      return false;
-    }
-
-    template <size_t Index>
-    typename std::enable_if<Index != 0, void>::type link() VKMA_NOEXCEPT
-    {
-      auto & x = std::get<Index - 1>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-      x.pNext  = &std::get<Index>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-      link<Index - 1>();
-    }
-
-    template <size_t Index>
-    typename std::enable_if<Index == 0, void>::type link() VKMA_NOEXCEPT
-    {}
-
-    template <size_t Index>
-    typename std::enable_if<Index != 0, void>::type unlink( VmaBaseOutStructure const * pNext ) VKMA_NOEXCEPT
-    {
-      auto & element = std::get<Index>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-      if ( element.pNext == pNext )
-      {
-        element.pNext = pNext->pNext;
-      }
-      else
-      {
-        unlink<Index - 1>( pNext );
-      }
-    }
-
-    template <size_t Index>
-    typename std::enable_if<Index == 0, void>::type unlink( VmaBaseOutStructure const * pNext ) VKMA_NOEXCEPT
-    {
-      auto & element = std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) );
-      if ( element.pNext == pNext )
-      {
-        element.pNext = pNext->pNext;
-      }
-      else
-      {
-        VKMA_ASSERT( false );  // fires, if the ClassType member has already been unlinked !
-      }
-    }
-  };
-
 #if !defined(VKMA_NO_SMART_HANDLE)
-  template <typename Type, typename Dispatch> class UniqueHandleTraits;
+  template <typename Type> class UniqueHandleTraits;
 
-  template <typename Type, typename Dispatch>
-  class UniqueHandle : public UniqueHandleTraits<Type,Dispatch>::deleter
+  template <typename Type>
+  class UniqueHandle : public UniqueHandleTraits<Type>::deleter
   {
   private:
-    using Deleter = typename UniqueHandleTraits<Type,Dispatch>::deleter;
+    using Deleter = typename UniqueHandleTraits<Type>::deleter;
 
   public:
     using element_type = Type;
@@ -1182,7 +956,7 @@ namespace VKMA_NAMESPACE
       return value;
     }
 
-    void swap( UniqueHandle<Type,Dispatch> & rhs ) VKMA_NOEXCEPT
+    void swap( UniqueHandle<Type> & rhs ) VKMA_NOEXCEPT
     {
       std::swap(m_value, rhs.m_value);
       std::swap(static_cast<Deleter&>(*this), static_cast<Deleter&>(rhs));
@@ -1200,305 +974,18 @@ namespace VKMA_NAMESPACE
     return newBuffer;
   }
 
-  template <typename Type, typename Dispatch>
-  VKMA_INLINE void swap( UniqueHandle<Type,Dispatch> & lhs, UniqueHandle<Type,Dispatch> & rhs ) VKMA_NOEXCEPT
+  template <typename Type>
+  VKMA_INLINE void swap( UniqueHandle<Type> & lhs, UniqueHandle<Type> & rhs ) VKMA_NOEXCEPT
   {
     lhs.swap( rhs );
   }
 #endif
-
-#if !defined(VMA_NO_PROTOTYPES)
-  class DispatchLoaderStatic
-  {
-  public:
-    VkResult vmaAllocateMemory( VmaAllocator allocator, const VkMemoryRequirements* pVkMemoryRequirements, const VmaAllocationCreateInfo* pCreateInfo, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaAllocateMemory( allocator, pVkMemoryRequirements, pCreateInfo, pAllocation, pAllocationInfo );
-    }
-
-    VkResult vmaAllocateMemoryForBuffer( VmaAllocator allocator, VkBuffer buffer, const VmaAllocationCreateInfo* pCreateInfo, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaAllocateMemoryForBuffer( allocator, buffer, pCreateInfo, pAllocation, pAllocationInfo );
-    }
-
-    VkResult vmaAllocateMemoryForImage( VmaAllocator allocator, VkImage image, const VmaAllocationCreateInfo* pCreateInfo, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaAllocateMemoryForImage( allocator, image, pCreateInfo, pAllocation, pAllocationInfo );
-    }
-
-    VkResult vmaAllocateMemoryPages( VmaAllocator allocator, const VkMemoryRequirements* pVkMemoryRequirements, const VmaAllocationCreateInfo* pCreateInfo, size_t allocationCount, VmaAllocation* pAllocations, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaAllocateMemoryPages( allocator, pVkMemoryRequirements, pCreateInfo, allocationCount, pAllocations, pAllocationInfo );
-    }
-
-    VkResult vmaBindBufferMemory( VmaAllocator allocator, VmaAllocation allocation, VkBuffer buffer ) const VKMA_NOEXCEPT
-    {
-      return ::vmaBindBufferMemory( allocator, allocation, buffer );
-    }
-
-    VkResult vmaBindBufferMemory2( VmaAllocator allocator, VmaAllocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext ) const VKMA_NOEXCEPT
-    {
-      return ::vmaBindBufferMemory2( allocator, allocation, allocationLocalOffset, buffer, pNext );
-    }
-
-    VkResult vmaBindImageMemory( VmaAllocator allocator, VmaAllocation allocation, VkImage image ) const VKMA_NOEXCEPT
-    {
-      return ::vmaBindImageMemory( allocator, allocation, image );
-    }
-
-    VkResult vmaBindImageMemory2( VmaAllocator allocator, VmaAllocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext ) const VKMA_NOEXCEPT
-    {
-      return ::vmaBindImageMemory2( allocator, allocation, allocationLocalOffset, image, pNext );
-    }
-
-    void vmaBuildStatsString( VmaAllocator allocator, char** ppStatsString, VkBool32 detailedMap ) const VKMA_NOEXCEPT
-    {
-      return ::vmaBuildStatsString( allocator, ppStatsString, detailedMap );
-    }
-
-    void vmaCalculateStats( VmaAllocator allocator, VmaStats* pStats ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCalculateStats( allocator, pStats );
-    }
-
-    VkResult vmaCheckCorruption( VmaAllocator allocator, uint32_t memoryTypeBits ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCheckCorruption( allocator, memoryTypeBits );
-    }
-
-    VkResult vmaCheckPoolCorruption( VmaAllocator allocator, VmaPool pool ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCheckPoolCorruption( allocator, pool );
-    }
-
-    VkResult vmaCreateAllocator( const VmaAllocatorCreateInfo* pCreateInfo, VmaAllocator* pAllocator ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCreateAllocator( pCreateInfo, pAllocator );
-    }
-
-    VkResult vmaCreateBuffer( VmaAllocator allocator, const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkBuffer* pBuffer, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCreateBuffer( allocator, pBufferCreateInfo, pAllocationCreateInfo, pBuffer, pAllocation, pAllocationInfo );
-    }
-
-    VkResult vmaCreateImage( VmaAllocator allocator, const VkImageCreateInfo* pImageCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkImage* pImage, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCreateImage( allocator, pImageCreateInfo, pAllocationCreateInfo, pImage, pAllocation, pAllocationInfo );
-    }
-
-    void vmaCreateLostAllocation( VmaAllocator allocator, VmaAllocation* pAllocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCreateLostAllocation( allocator, pAllocation );
-    }
-
-    VkResult vmaCreatePool( VmaAllocator allocator, const VmaPoolCreateInfo* pCreateInfo, VmaPool* pPool ) const VKMA_NOEXCEPT
-    {
-      return ::vmaCreatePool( allocator, pCreateInfo, pPool );
-    }
-
-    VkResult vmaDefragment( VmaAllocator allocator, VmaAllocation* pAllocations, size_t allocationCount, VkBool32* pAllocationsChanged, const VmaDefragmentationInfo* pDefragmentationInfo, VmaDefragmentationStats* pDefragmentationStats ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDefragment( allocator, pAllocations, allocationCount, pAllocationsChanged, pDefragmentationInfo, pDefragmentationStats );
-    }
-
-    VkResult vmaDefragmentationBegin( VmaAllocator allocator, const VmaDefragmentationInfo2* pInfo, VmaDefragmentationStats* pStats, VmaDefragmentationContext* pContext ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDefragmentationBegin( allocator, pInfo, pStats, pContext );
-    }
-
-    VkResult vmaDefragmentationEnd( VmaAllocator allocator, VmaDefragmentationContext context ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDefragmentationEnd( allocator, context );
-    }
-
-    void vmaDestroyAllocator( VmaAllocator allocator ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDestroyAllocator( allocator );
-    }
-
-    void vmaDestroyBuffer( VmaAllocator allocator, VkBuffer buffer, VmaAllocation allocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDestroyBuffer( allocator, buffer, allocation );
-    }
-
-    void vmaDestroyImage( VmaAllocator allocator, VkImage image, VmaAllocation allocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDestroyImage( allocator, image, allocation );
-    }
-
-    void vmaDestroyPool( VmaAllocator allocator, VmaPool pool ) const VKMA_NOEXCEPT
-    {
-      return ::vmaDestroyPool( allocator, pool );
-    }
-
-    VkResult vmaFindMemoryTypeIndex( VmaAllocator allocator, uint32_t memoryTypeBits, const VmaAllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFindMemoryTypeIndex( allocator, memoryTypeBits, pAllocationCreateInfo, pMemoryTypeIndex );
-    }
-
-    VkResult vmaFindMemoryTypeIndexForBufferInfo( VmaAllocator allocator, const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFindMemoryTypeIndexForBufferInfo( allocator, pBufferCreateInfo, pAllocationCreateInfo, pMemoryTypeIndex );
-    }
-
-    VkResult vmaFindMemoryTypeIndexForImageInfo( VmaAllocator allocator, const VkImageCreateInfo* pImageCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFindMemoryTypeIndexForImageInfo( allocator, pImageCreateInfo, pAllocationCreateInfo, pMemoryTypeIndex );
-    }
-
-    void vmaFlushAllocation( VmaAllocator allocator, VmaAllocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFlushAllocation( allocator, allocation, offset, size );
-    }
-
-    void vmaFreeMemory( VmaAllocator allocator, VmaAllocation allocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFreeMemory( allocator, allocation );
-    }
-
-    void vmaFreeMemoryPages( VmaAllocator allocator, size_t allocationCount, VmaAllocation* pAllocations ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFreeMemoryPages( allocator, allocationCount, pAllocations );
-    }
-
-    void vmaFreeStatsString( VmaAllocator allocator, char* pStatsString ) const VKMA_NOEXCEPT
-    {
-      return ::vmaFreeStatsString( allocator, pStatsString );
-    }
-
-    void vmaGetAllocationInfo( VmaAllocator allocator, VmaAllocation allocation, VmaAllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetAllocationInfo( allocator, allocation, pAllocationInfo );
-    }
-
-    void vmaGetBudget( VmaAllocator allocator, VmaBudget* pBudget ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetBudget( allocator, pBudget );
-    }
-
-    void vmaGetMemoryProperties( VmaAllocator allocator, const VkPhysicalDeviceMemoryProperties** ppPhysicalDeviceMemoryProperties ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetMemoryProperties( allocator, ppPhysicalDeviceMemoryProperties );
-    }
-
-    void vmaGetMemoryTypeProperties( VmaAllocator allocator, uint32_t memoryTypeIndex, VkMemoryPropertyFlags* pFlags ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetMemoryTypeProperties( allocator, memoryTypeIndex, pFlags );
-    }
-
-    void vmaGetPhysicalDeviceProperties( VmaAllocator allocator, const VkPhysicalDeviceProperties** ppPhysicalDeviceProperties ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetPhysicalDeviceProperties( allocator, ppPhysicalDeviceProperties );
-    }
-
-    void vmaGetPoolName( VmaAllocator allocator, VmaPool pool, const char** ppName ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetPoolName( allocator, pool, ppName );
-    }
-
-    void vmaGetPoolStats( VmaAllocator allocator, VmaPool pool, VmaPoolStats* pPoolStats ) const VKMA_NOEXCEPT
-    {
-      return ::vmaGetPoolStats( allocator, pool, pPoolStats );
-    }
-
-    void vmaInvalidateAllocation( VmaAllocator allocator, VmaAllocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT
-    {
-      return ::vmaInvalidateAllocation( allocator, allocation, offset, size );
-    }
-
-    void vmaMakePoolAllocationsLost( VmaAllocator allocator, VmaPool pool, size_t* pLostAllocationCount ) const VKMA_NOEXCEPT
-    {
-      return ::vmaMakePoolAllocationsLost( allocator, pool, pLostAllocationCount );
-    }
-
-    VkResult vmaMapMemory( VmaAllocator allocator, VmaAllocation allocation, void** ppData ) const VKMA_NOEXCEPT
-    {
-      return ::vmaMapMemory( allocator, allocation, ppData );
-    }
-
-    VkResult vmaResizeAllocation( VmaAllocator allocator, VmaAllocation allocation, VkDeviceSize newSize ) const VKMA_NOEXCEPT
-    {
-      return ::vmaResizeAllocation( allocator, allocation, newSize );
-    }
-
-    void vmaSetAllocationUserData( VmaAllocator allocator, VmaAllocation allocation, void* pUserData ) const VKMA_NOEXCEPT
-    {
-      return ::vmaSetAllocationUserData( allocator, allocation, pUserData );
-    }
-
-    void vmaSetCurrentFrameIndex( VmaAllocator allocator, uint32_t frameIndex ) const VKMA_NOEXCEPT
-    {
-      return ::vmaSetCurrentFrameIndex( allocator, frameIndex );
-    }
-
-    void vmaSetPoolName( VmaAllocator allocator, VmaPool pool, const char* pName ) const VKMA_NOEXCEPT
-    {
-      return ::vmaSetPoolName( allocator, pool, pName );
-    }
-
-    VkBool32 vmaTouchAllocation( VmaAllocator allocator, VmaAllocation allocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaTouchAllocation( allocator, allocation );
-    }
-
-    void vmaUnmapMemory( VmaAllocator allocator, VmaAllocation allocation ) const VKMA_NOEXCEPT
-    {
-      return ::vmaUnmapMemory( allocator, allocation );
-    }
-  };
-#endif
-
-  class DispatchLoaderDynamic;
-#if !defined(VKMA_DISPATCH_LOADER_DYNAMIC)
-# if defined(VMA_NO_PROTOTYPES)
-#  define VKMA_DISPATCH_LOADER_DYNAMIC 1
-# else
-#  define VKMA_DISPATCH_LOADER_DYNAMIC 0
-# endif
-#endif
-
-#if defined(_WIN32) && defined(VKMA_STORAGE_SHARED)
-#  ifdef VKMA_STORAGE_SHARED_EXPORT
-#    define VKMA_STORAGE_API __declspec( dllexport )
-#  else
-#    define VKMA_STORAGE_API __declspec( dllimport )
-#  endif
-#else
-#  define VKMA_STORAGE_API
-#endif
-
-#if !defined(VKMA_DEFAULT_DISPATCHER)
-# if VKMA_DISPATCH_LOADER_DYNAMIC == 1
-#  define VKMA_DEFAULT_DISPATCHER ::VKMA_NAMESPACE::defaultDispatchLoaderDynamic
-#  define VKMA_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE namespace VKMA_NAMESPACE { VKMA_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic; }
-  extern VKMA_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic;
-# else
-#  define VKMA_DEFAULT_DISPATCHER ::VKMA_NAMESPACE::DispatchLoaderStatic()
-#  define VKMA_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-# endif
-#endif
-
-#if !defined(VKMA_DEFAULT_DISPATCHER_TYPE)
-# if VKMA_DISPATCH_LOADER_DYNAMIC == 1
-  #define VKMA_DEFAULT_DISPATCHER_TYPE ::VKMA_NAMESPACE::DispatchLoaderDynamic
-# else
-#  define VKMA_DEFAULT_DISPATCHER_TYPE ::VKMA_NAMESPACE::DispatchLoaderStatic
-# endif
-#endif
-
-#if defined( VKMA_NO_DEFAULT_DISPATCHER )
-#  define VKMA_DEFAULT_ARGUMENT_ASSIGNMENT
-#  define VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT
-#  define VKMA_DEFAULT_DISPATCHER_ASSIGNMENT
-#else
-#  define VKMA_DEFAULT_ARGUMENT_ASSIGNMENT = {}
-#  define VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr
-#  define VKMA_DEFAULT_DISPATCHER_ASSIGNMENT = VKMA_DEFAULT_DISPATCHER
-#endif
+#define VKMA_DEFAULT_ARGUMENT_ASSIGNMENT = {}
+# define VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr
 
   struct AllocationCallbacks;
 
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType>
   class ObjectDestroy
   {
     public:
@@ -1506,11 +993,9 @@ namespace VKMA_NAMESPACE
 
     ObjectDestroy( OwnerType owner,
                    Optional<const AllocationCallbacks> allocationCallbacks
-                                    VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
-                   Dispatch const & dispatch = VKMA_DEFAULT_DISPATCHER ) VKMA_NOEXCEPT
+                                    VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT ) VKMA_NOEXCEPT
       : m_owner( owner )
       , m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
     {}
 
       OwnerType getOwner() const VKMA_NOEXCEPT { return m_owner; }
@@ -1520,28 +1005,25 @@ namespace VKMA_NAMESPACE
       template <typename T>
       void destroy(T t) VKMA_NOEXCEPT
       {
-        VKMA_ASSERT( m_owner && m_dispatch );
-        m_owner.destroy( t, m_allocationCallbacks, *m_dispatch );
+        VKMA_ASSERT( m_owner );
+        m_owner.destroy( t, m_allocationCallbacks );
       }
 
     private:
     OwnerType                           m_owner               = {};
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
   };
 
   class NoParent;
 
-  template <typename Dispatch>
-  class ObjectDestroy<NoParent,Dispatch>
+  template <>
+  class ObjectDestroy<NoParent>
   {
     public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks,
-                   Dispatch const &                    dispatch = VKMA_DEFAULT_DISPATCHER ) VKMA_NOEXCEPT
+    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks ) VKMA_NOEXCEPT
       : m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
     {}
 
       Optional<const AllocationCallbacks> getAllocator() const VKMA_NOEXCEPT { return m_allocationCallbacks; }
@@ -1550,27 +1032,23 @@ namespace VKMA_NAMESPACE
       template <typename T>
       void destroy(T t) VKMA_NOEXCEPT
       {
-        VKMA_ASSERT( m_dispatch );
-        t.destroy( m_allocationCallbacks, *m_dispatch );
+        t.destroy( m_allocationCallbacks );
       }
 
     private:
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
   };
 
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType>
   class ObjectFree
   {
   public:
     ObjectFree() = default;
 
-    ObjectFree( OwnerType                                               owner,
-                Optional<const AllocationCallbacks> allocationCallbacks VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
-                Dispatch const & dispatch = VKMA_DEFAULT_DISPATCHER ) VKMA_NOEXCEPT
+    ObjectFree( OwnerType owner,
+                Optional<const AllocationCallbacks> allocationCallbacks VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT ) VKMA_NOEXCEPT
       : m_owner( owner )
       , m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
     {}
 
     OwnerType getOwner() const VKMA_NOEXCEPT
@@ -1587,25 +1065,23 @@ namespace VKMA_NAMESPACE
     template <typename T>
     void destroy( T t ) VKMA_NOEXCEPT
     {
-      VKMA_ASSERT( m_owner && m_dispatch );
-      m_owner.free( t, m_allocationCallbacks, *m_dispatch );
+      VKMA_ASSERT( m_owner );
+      m_owner.free( t, m_allocationCallbacks );
     }
 
   private:
     OwnerType                           m_owner               = {};
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
   };
 
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType>
   class ObjectRelease
   {
   public:
     ObjectRelease() = default;
 
-    ObjectRelease( OwnerType owner, Dispatch const & dispatch = VKMA_DEFAULT_DISPATCHER ) VKMA_NOEXCEPT
+    ObjectRelease( OwnerType owner ) VKMA_NOEXCEPT
       : m_owner( owner )
-      , m_dispatch( &dispatch )
     {}
 
     OwnerType getOwner() const VKMA_NOEXCEPT
@@ -1617,28 +1093,25 @@ namespace VKMA_NAMESPACE
     template <typename T>
     void destroy( T t ) VKMA_NOEXCEPT
     {
-      VKMA_ASSERT( m_owner && m_dispatch );
-      m_owner.release( t, *m_dispatch );
+      VKMA_ASSERT( m_owner );
+      m_owner.release( t );
     }
 
   private:
     OwnerType        m_owner    = {};
-    Dispatch const * m_dispatch = nullptr;
   };
 
-  template <typename OwnerType, typename PoolType, typename Dispatch>
+  template <typename OwnerType, typename PoolType>
   class PoolFree
   {
     public:
       PoolFree() = default;
 
-      PoolFree( OwnerType        owner,
-                PoolType         pool,
-                Dispatch const & dispatch = VKMA_DEFAULT_DISPATCHER ) VKMA_NOEXCEPT
-        : m_owner( owner )
-        , m_pool( pool )
-        , m_dispatch( &dispatch )
-      {}
+    PoolFree( OwnerType        owner,
+              PoolType         pool ) VKMA_NOEXCEPT
+      : m_owner( owner )
+      , m_pool( pool )
+    {}
 
       OwnerType getOwner() const VKMA_NOEXCEPT { return m_owner; }
       PoolType getPool() const VKMA_NOEXCEPT { return m_pool; }
@@ -1647,13 +1120,12 @@ namespace VKMA_NAMESPACE
       template <typename T>
       void destroy(T t) VKMA_NOEXCEPT
       {
-        m_owner.free( m_pool, t, *m_dispatch );
+        m_owner.free( m_pool, t );
       }
 
     private:
       OwnerType        m_owner    = OwnerType();
       PoolType         m_pool     = PoolType();
-      Dispatch const * m_dispatch = nullptr;
   };
 
 
@@ -2310,59 +1782,59 @@ namespace VKMA_NAMESPACE
   };
 
 #if !defined(VKMA_NO_SMART_HANDLE)
-  template <typename Type, typename Dispatch>
-  struct ResultValue<UniqueHandle<Type,Dispatch>>
+  template <typename Type>
+  struct ResultValue<UniqueHandle<Type>>
   {
 #ifdef VKMA_HAS_NOEXCEPT
-    ResultValue(Result r, UniqueHandle<Type, Dispatch> && v) VKMA_NOEXCEPT
+    ResultValue(Result r, UniqueHandle<Type> && v) VKMA_NOEXCEPT
 #else
-    ResultValue(Result r, UniqueHandle<Type, Dispatch> && v)
+    ResultValue(Result r, UniqueHandle<Type> && v)
 #endif
       : result(r)
       , value(std::move(v))
     {}
 
-    std::tuple<Result, UniqueHandle<Type, Dispatch>> asTuple()
+    std::tuple<Result, UniqueHandle<Type>> asTuple()
     {
       return std::make_tuple( result, std::move( value ) );
     }
 
 #  if !defined(VKMA_DISABLE_IMPLICIT_RESULT_VALUE_CAST)
     VKMA_DEPRECATED("Implicit-cast operators on vkma::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
-    operator UniqueHandle<Type, Dispatch>& () & VKMA_NOEXCEPT
+    operator UniqueHandle<Type>& () & VKMA_NOEXCEPT
     {
       return value;
     }
 
     VKMA_DEPRECATED("Implicit-cast operators on vkma::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
-    operator UniqueHandle<Type, Dispatch>() VKMA_NOEXCEPT
+    operator UniqueHandle<Type>() VKMA_NOEXCEPT
     {
       return std::move(value);
     }
 #  endif
 
     Result                        result;
-    UniqueHandle<Type, Dispatch>  value;
+    UniqueHandle<Type>  value;
   };
 
-  template <typename Type, typename Dispatch>
-  struct ResultValue<std::vector<UniqueHandle<Type, Dispatch>>>
+  template <typename Type>
+  struct ResultValue<std::vector<UniqueHandle<Type>>>
   {
 #  ifdef VKMA_HAS_NOEXCEPT
-    ResultValue( Result r, std::vector<UniqueHandle<Type, Dispatch>> && v ) VKMA_NOEXCEPT
+    ResultValue( Result r, std::vector<UniqueHandle<Type>> && v ) VKMA_NOEXCEPT
 #  else
-    ResultValue( Result r, std::vector<UniqueHandle<Type, Dispatch>> && v )
+    ResultValue( Result r, std::vector<UniqueHandle<Type>> && v )
 #  endif
       : result( r )
       , value( std::move( v ) )
     {}
 
     Result                                    result;
-    std::vector<UniqueHandle<Type, Dispatch>> value;
+    std::vector<UniqueHandle<Type>> value;
 
-    operator std::tuple<Result &, std::vector<UniqueHandle<Type, Dispatch>> &>() VKMA_NOEXCEPT
+    operator std::tuple<Result &, std::vector<UniqueHandle<Type>> &>() VKMA_NOEXCEPT
     {
-      return std::tuple<Result &, std::vector<UniqueHandle<Type, Dispatch>> &>( result, value );
+      return std::tuple<Result &, std::vector<UniqueHandle<Type>> &>( result, value );
     }
   };
 #endif
@@ -4478,77 +3950,61 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult bindBufferMemory( Allocation allocation, VkBuffer buffer, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult bindBufferMemory( Allocation allocation, VkBuffer buffer ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindBufferMemory( Allocation allocation, VkBuffer buffer, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindBufferMemory( Allocation allocation, VkBuffer buffer ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult bindImageMemory( Allocation allocation, VkImage image, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult bindImageMemory( Allocation allocation, VkImage image ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindImageMemory( Allocation allocation, VkImage image, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindImageMemory( Allocation allocation, VkImage image ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void buildStatsString( char** ppStatsString, VkBool32 detailedMap, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void buildStatsString( char** ppStatsString, VkBool32 detailedMap ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD char buildStatsString( VkBool32 detailedMap, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD char buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void calculateStats( Stats* pStats, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void calculateStats( Stats* pStats ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VKMA_NAMESPACE::Stats calculateStats( Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VKMA_NAMESPACE::Stats calculateStats(  ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult checkCorruption( uint32_t memoryTypeBits, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult checkCorruption( uint32_t memoryTypeBits ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type checkCorruption( uint32_t memoryTypeBits, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type checkCorruption( uint32_t memoryTypeBits ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult checkPoolCorruption( Pool pool, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult checkPoolCorruption( Pool pool ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type checkPoolCorruption( Pool pool, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type checkPoolCorruption( Pool pool ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
@@ -4556,14 +4012,11 @@ namespace VKMA_NAMESPACE
 
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult createPool( const PoolCreateInfo* pCreateInfo, Pool* pPool, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult createPool( const PoolCreateInfo* pCreateInfo, Pool* pPool ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Pool>::type createPool( const PoolCreateInfo & createInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Pool>::type createPool( const PoolCreateInfo & createInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-  template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool, Dispatch>>::type createPoolUnique( const PoolCreateInfo & createInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool, Dispatch>>::type createPoolUnique( const PoolCreateInfo & createInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
@@ -4571,184 +4024,144 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult defragmentationEnd( DefragmentationContext context, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult defragmentationEnd( DefragmentationContext context ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type defragmentationEnd( DefragmentationContext context, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type defragmentationEnd( DefragmentationContext context ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void destroy( Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void destroy(  ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void destroyBuffer( VkBuffer buffer, Allocation allocation, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void destroyBuffer( VkBuffer buffer, Allocation allocation ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void destroyImage( VkImage image, Allocation allocation, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void destroyImage( VkImage image, Allocation allocation ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void destroyPool( Pool pool, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void destroyPool( Pool pool ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo & allocationCreateInfo ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo* pBufferCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo* pBufferCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo & bufferCreateInfo, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo & bufferCreateInfo, const AllocationCreateInfo & allocationCreateInfo ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult findMemoryTypeIndexForImageInfo( const VkImageCreateInfo* pImageCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult findMemoryTypeIndexForImageInfo( const VkImageCreateInfo* pImageCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndexForImageInfo( const VkImageCreateInfo & imageCreateInfo, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<uint32_t>::type findMemoryTypeIndexForImageInfo( const VkImageCreateInfo & imageCreateInfo, const AllocationCreateInfo & allocationCreateInfo ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void flushAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void flushAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void freeMemory( Allocation allocation, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void freeMemory( Allocation allocation ) const VKMA_NOEXCEPT;
 
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void freeStatsString( char* pStatsString, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void freeStatsString( char* pStatsString ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD char freeStatsString( Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD char freeStatsString(  ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getAllocationInfo( Allocation allocation, AllocationInfo* pAllocationInfo, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getAllocationInfo( Allocation allocation, AllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VKMA_NAMESPACE::AllocationInfo getAllocationInfo( Allocation allocation, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VKMA_NAMESPACE::AllocationInfo getAllocationInfo( Allocation allocation ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getBudget( Budget* pBudget, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getBudget( Budget* pBudget ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VKMA_NAMESPACE::Budget getBudget( Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VKMA_NAMESPACE::Budget getBudget(  ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getMemoryProperties( const VkPhysicalDeviceMemoryProperties** ppPhysicalDeviceMemoryProperties, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getMemoryProperties( const VkPhysicalDeviceMemoryProperties** ppPhysicalDeviceMemoryProperties ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getMemoryProperties( const VkPhysicalDeviceMemoryProperties & pPhysicalDeviceMemoryProperties, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  template <>
+void getMemoryProperties( const VkPhysicalDeviceMemoryProperties & pPhysicalDeviceMemoryProperties ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getMemoryTypeProperties( uint32_t memoryTypeIndex, VkMemoryPropertyFlags* pFlags, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getMemoryTypeProperties( uint32_t memoryTypeIndex, VkMemoryPropertyFlags* pFlags ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkMemoryPropertyFlags getMemoryTypeProperties( uint32_t memoryTypeIndex, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkMemoryPropertyFlags getMemoryTypeProperties( uint32_t memoryTypeIndex ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getPhysicalDeviceProperties( const VkPhysicalDeviceProperties** ppPhysicalDeviceProperties, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getPhysicalDeviceProperties( const VkPhysicalDeviceProperties** ppPhysicalDeviceProperties ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getPhysicalDeviceProperties( const VkPhysicalDeviceProperties & pPhysicalDeviceProperties, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  template <>
+void getPhysicalDeviceProperties( const VkPhysicalDeviceProperties & pPhysicalDeviceProperties ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getPoolName( Pool pool, const char** ppName, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getPoolName( Pool pool, const char** ppName ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getPoolName( Pool pool, const char & pName, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  template <>
+void getPoolName( Pool pool, const char & pName ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void getPoolStats( Pool pool, PoolStats* pPoolStats, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void getPoolStats( Pool pool, PoolStats* pPoolStats ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VKMA_NAMESPACE::PoolStats getPoolStats( Pool pool, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VKMA_NAMESPACE::PoolStats getPoolStats( Pool pool ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void invalidateAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void invalidateAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void makePoolAllocationsLost( Pool pool, size_t* pLostAllocationCount, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void makePoolAllocationsLost( Pool pool, size_t* pLostAllocationCount ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD size_t makePoolAllocationsLost( Pool pool, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD size_t makePoolAllocationsLost( Pool pool ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult mapMemory( Allocation allocation, void** ppData, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult mapMemory( Allocation allocation, void** ppData ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void*>::type mapMemory( Allocation allocation, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void*>::type mapMemory( Allocation allocation ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult resizeAllocation( Allocation allocation, VkDeviceSize newSize, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult resizeAllocation( Allocation allocation, VkDeviceSize newSize ) const VKMA_NOEXCEPT;
 #else
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type resizeAllocation( Allocation allocation, VkDeviceSize newSize, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type resizeAllocation( Allocation allocation, VkDeviceSize newSize ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void setAllocationUserData( Allocation allocation, void* pUserData, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void setAllocationUserData( Allocation allocation, void* pUserData ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD void setAllocationUserData( Allocation allocation, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VKMA_NODISCARD void setAllocationUserData( Allocation allocation ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void setCurrentFrameIndex( uint32_t frameIndex, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void setCurrentFrameIndex( uint32_t frameIndex ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void setPoolName( Pool pool, const char* pName, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void setPoolName( Pool pool, const char* pName ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void setPoolName( Pool pool, const char & name, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  template <>
+void setPoolName( Pool pool, const char & name ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VkBool32 touchAllocation( Allocation allocation, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  VkBool32 touchAllocation( Allocation allocation ) const VKMA_NOEXCEPT;
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    void unmapMemory( Allocation allocation, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) const VKMA_NOEXCEPT;
+  void unmapMemory( Allocation allocation ) const VKMA_NOEXCEPT;
 
     VKMA_TYPESAFE_EXPLICIT operator VmaAllocator() const VKMA_NOEXCEPT
     {
@@ -4791,27 +4204,22 @@ namespace VKMA_NAMESPACE
   };
 
 
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD VkResult createAllocator( const AllocatorCreateInfo* pCreateInfo, Allocator* pAllocator, Dispatch const & d  VKMA_DEFAULT_DISPATCHER_ASSIGNMENT ) VKMA_NOEXCEPT;
+  VKMA_NODISCARD VkResult createAllocator( const AllocatorCreateInfo* pCreateInfo, Allocator* pAllocator ) VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocator>::type createAllocator( const AllocatorCreateInfo & createInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT );
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocator>::type createAllocator( const AllocatorCreateInfo & createInfo );
 #  ifndef VKMA_NO_SMART_HANDLE
-  template <typename Dispatch = VKMA_DEFAULT_DISPATCHER_TYPE>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator, Dispatch>>::type createAllocatorUnique( const AllocatorCreateInfo & createInfo, Dispatch const & d VKMA_DEFAULT_DISPATCHER_ASSIGNMENT );
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator, Dispatch>>::type createAllocatorUnique( const AllocatorCreateInfo & createInfo );
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult createAllocator( const AllocatorCreateInfo* pCreateInfo, Allocator* pAllocator, Dispatch const & d  ) VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult createAllocator( const AllocatorCreateInfo* pCreateInfo, Allocator* pAllocator ) VKMA_NOEXCEPT
   {
     return d.vmaCreateAllocator( reinterpret_cast<const VmaAllocatorCreateInfo *>( pCreateInfo ), reinterpret_cast< VmaAllocator *>( pAllocator ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<Allocator>::type createAllocator( const AllocatorCreateInfo & createInfo, Dispatch const & d )
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<Allocator>::type createAllocator( const AllocatorCreateInfo & createInfo )
   {
     Allocator allocator;
     Result result = static_cast<Result>( d.vmaCreateAllocator( reinterpret_cast<const VmaAllocatorCreateInfo *>( &createInfo ), reinterpret_cast<VmaAllocator *>( &allocator ) ) );
@@ -4819,13 +4227,12 @@ namespace VKMA_NAMESPACE
   }
 
 #  ifndef VKMA_NO_SMART_HANDLE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator, Dispatch>>::type createAllocatorUnique( const AllocatorCreateInfo & createInfo, Dispatch const & d )
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator>>::type createAllocatorUnique( const AllocatorCreateInfo & createInfo )
   {
     Allocator allocator;
     Result result = static_cast<Result>( d.vmaCreateAllocator( reinterpret_cast<const VmaAllocatorCreateInfo *>( &createInfo ), reinterpret_cast<VmaAllocator *>( &allocator ) ) );
-    ObjectDestroy<NoParent, Dispatch> deleter( allocator, d );
-    return createResultValue<Allocator, Dispatch>( result, allocator, VKMA_NAMESPACE_STRING "::createAllocatorUnique", deleter );
+    ObjectDestroy<NoParent> deleter( allocator, d );
+    return createResultValue<Allocator>( result, allocator, VKMA_NAMESPACE_STRING "::createAllocatorUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -4836,14 +4243,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindBufferMemory( Allocation allocation, VkBuffer buffer, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindBufferMemory( Allocation allocation, VkBuffer buffer ) const VKMA_NOEXCEPT
   {
     return d.vmaBindBufferMemory( m_allocator, static_cast<VmaAllocation>( allocation ), buffer );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindBufferMemory( Allocation allocation, VkBuffer buffer, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindBufferMemory( Allocation allocation, VkBuffer buffer ) const
   {
     Result result = static_cast<Result>( d.vmaBindBufferMemory( m_allocator, static_cast<VmaAllocation>( allocation ), buffer ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::bindBufferMemory" );
@@ -4853,14 +4258,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext ) const VKMA_NOEXCEPT
   {
     return d.vmaBindBufferMemory2( m_allocator, static_cast<VmaAllocation>( allocation ), allocationLocalOffset, buffer, pNext );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindBufferMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkBuffer buffer, const void* pNext ) const
   {
     Result result = static_cast<Result>( d.vmaBindBufferMemory2( m_allocator, static_cast<VmaAllocation>( allocation ), allocationLocalOffset, buffer, pNext ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::bindBufferMemory2" );
@@ -4870,14 +4273,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindImageMemory( Allocation allocation, VkImage image, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindImageMemory( Allocation allocation, VkImage image ) const VKMA_NOEXCEPT
   {
     return d.vmaBindImageMemory( m_allocator, static_cast<VmaAllocation>( allocation ), image );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindImageMemory( Allocation allocation, VkImage image, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindImageMemory( Allocation allocation, VkImage image ) const
   {
     Result result = static_cast<Result>( d.vmaBindImageMemory( m_allocator, static_cast<VmaAllocation>( allocation ), image ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::bindImageMemory" );
@@ -4887,14 +4288,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext ) const VKMA_NOEXCEPT
   {
     return d.vmaBindImageMemory2( m_allocator, static_cast<VmaAllocation>( allocation ), allocationLocalOffset, image, pNext );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::bindImageMemory2( Allocation allocation, VkDeviceSize allocationLocalOffset, VkImage image, const void* pNext ) const
   {
     Result result = static_cast<Result>( d.vmaBindImageMemory2( m_allocator, static_cast<VmaAllocation>( allocation ), allocationLocalOffset, image, pNext ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::bindImageMemory2" );
@@ -4903,15 +4302,13 @@ namespace VKMA_NAMESPACE
 
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::buildStatsString( char** ppStatsString, VkBool32 detailedMap, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::buildStatsString( char** ppStatsString, VkBool32 detailedMap ) const VKMA_NOEXCEPT
   {
     d.vmaBuildStatsString( m_allocator, ppStatsString, detailedMap );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE char Allocator::buildStatsString( VkBool32 detailedMap, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE char Allocator::buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT
   {
     char pStatsString;
     d.vmaBuildStatsString( m_allocator, &pStatsString, detailedMap );
@@ -4920,15 +4317,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::calculateStats( Stats* pStats, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::calculateStats( Stats* pStats ) const VKMA_NOEXCEPT
   {
     d.vmaCalculateStats( m_allocator, reinterpret_cast< VmaStats *>( pStats ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::Stats Allocator::calculateStats( Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::Stats Allocator::calculateStats(  ) const VKMA_NOEXCEPT
   {
     VKMA_NAMESPACE::Stats stats;
     d.vmaCalculateStats( m_allocator, reinterpret_cast<VmaStats *>( &stats ) );
@@ -4938,14 +4333,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::checkCorruption( uint32_t memoryTypeBits, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::checkCorruption( uint32_t memoryTypeBits ) const VKMA_NOEXCEPT
   {
     return d.vmaCheckCorruption( m_allocator, memoryTypeBits );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::checkCorruption( uint32_t memoryTypeBits, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::checkCorruption( uint32_t memoryTypeBits ) const
   {
     Result result = static_cast<Result>( d.vmaCheckCorruption( m_allocator, memoryTypeBits ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::checkCorruption" );
@@ -4955,14 +4348,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::checkPoolCorruption( Pool pool, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::checkPoolCorruption( Pool pool ) const VKMA_NOEXCEPT
   {
     return d.vmaCheckPoolCorruption( m_allocator, static_cast<VmaPool>( pool ) );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::checkPoolCorruption( Pool pool, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::checkPoolCorruption( Pool pool ) const
   {
     Result result = static_cast<Result>( d.vmaCheckPoolCorruption( m_allocator, static_cast<VmaPool>( pool ) ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::checkPoolCorruption" );
@@ -4974,15 +4365,13 @@ namespace VKMA_NAMESPACE
 
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::createPool( const PoolCreateInfo* pCreateInfo, Pool* pPool, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::createPool( const PoolCreateInfo* pCreateInfo, Pool* pPool ) const VKMA_NOEXCEPT
   {
     return d.vmaCreatePool( m_allocator, reinterpret_cast<const VmaPoolCreateInfo *>( pCreateInfo ), reinterpret_cast< VmaPool *>( pPool ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<Pool>::type Allocator::createPool( const PoolCreateInfo & createInfo, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<Pool>::type Allocator::createPool( const PoolCreateInfo & createInfo ) const
   {
     Pool pool;
     Result result = static_cast<Result>( d.vmaCreatePool( m_allocator, reinterpret_cast<const VmaPoolCreateInfo *>( &createInfo ), reinterpret_cast<VmaPool *>( &pool ) ) );
@@ -4990,13 +4379,12 @@ namespace VKMA_NAMESPACE
   }
 
 #  ifndef VKMA_NO_SMART_HANDLE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool, Dispatch>>::type Allocator::createPoolUnique( const PoolCreateInfo & createInfo, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool>>::type Allocator::createPoolUnique( const PoolCreateInfo & createInfo ) const
   {
     Pool pool;
     Result result = static_cast<Result>( d.vmaCreatePool( m_allocator, reinterpret_cast<const VmaPoolCreateInfo *>( &createInfo ), reinterpret_cast<VmaPool *>( &pool ) ) );
-    ObjectDestroy<Allocator, Dispatch> deleter( *this, allocator, d );
-    return createResultValue<Pool, Dispatch>( result, pool, VKMA_NAMESPACE_STRING "::Allocator::createPoolUnique", deleter );
+    ObjectDestroy<Allocator> deleter( *this, allocator, d );
+    return createResultValue<Pool>( result, pool, VKMA_NAMESPACE_STRING "::Allocator::createPoolUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -5005,14 +4393,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::defragmentationEnd( DefragmentationContext context, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::defragmentationEnd( DefragmentationContext context ) const VKMA_NOEXCEPT
   {
     return d.vmaDefragmentationEnd( m_allocator, static_cast<VmaDefragmentationContext>( context ) );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::defragmentationEnd( DefragmentationContext context, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::defragmentationEnd( DefragmentationContext context ) const
   {
     Result result = static_cast<Result>( d.vmaDefragmentationEnd( m_allocator, static_cast<VmaDefragmentationContext>( context ) ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::defragmentationEnd" );
@@ -5021,43 +4407,37 @@ namespace VKMA_NAMESPACE
 
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::destroy( Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::destroy(  ) const VKMA_NOEXCEPT
   {
     d.vmaDestroyAllocator( m_allocator );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::destroyBuffer( VkBuffer buffer, Allocation allocation, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::destroyBuffer( VkBuffer buffer, Allocation allocation ) const VKMA_NOEXCEPT
   {
     d.vmaDestroyBuffer( m_allocator, buffer, static_cast<VmaAllocation>( allocation ) );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::destroyImage( VkImage image, Allocation allocation, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::destroyImage( VkImage image, Allocation allocation ) const VKMA_NOEXCEPT
   {
     d.vmaDestroyImage( m_allocator, image, static_cast<VmaAllocation>( allocation ) );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::destroyPool( Pool pool, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::destroyPool( Pool pool ) const VKMA_NOEXCEPT
   {
     d.vmaDestroyPool( m_allocator, static_cast<VmaPool>( pool ) );
   }
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
   {
     return d.vmaFindMemoryTypeIndex( m_allocator, memoryTypeBits, reinterpret_cast<const VmaAllocationCreateInfo *>( pAllocationCreateInfo ), pMemoryTypeIndex );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndex( uint32_t memoryTypeBits, const AllocationCreateInfo & allocationCreateInfo ) const
   {
     uint32_t memoryTypeIndex;
     Result result = static_cast<Result>( d.vmaFindMemoryTypeIndex( m_allocator, memoryTypeBits, reinterpret_cast<const VmaAllocationCreateInfo *>( &allocationCreateInfo ), &memoryTypeIndex ) );
@@ -5066,15 +4446,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo* pBufferCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo* pBufferCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
   {
     return d.vmaFindMemoryTypeIndexForBufferInfo( m_allocator, pBufferCreateInfo, reinterpret_cast<const VmaAllocationCreateInfo *>( pAllocationCreateInfo ), pMemoryTypeIndex );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo & bufferCreateInfo, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndexForBufferInfo( const VkBufferCreateInfo & bufferCreateInfo, const AllocationCreateInfo & allocationCreateInfo ) const
   {
     uint32_t memoryTypeIndex;
     Result result = static_cast<Result>( d.vmaFindMemoryTypeIndexForBufferInfo( m_allocator, &bufferCreateInfo, reinterpret_cast<const VmaAllocationCreateInfo *>( &allocationCreateInfo ), &memoryTypeIndex ) );
@@ -5083,15 +4461,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndexForImageInfo( const VkImageCreateInfo* pImageCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::findMemoryTypeIndexForImageInfo( const VkImageCreateInfo* pImageCreateInfo, const AllocationCreateInfo* pAllocationCreateInfo, uint32_t* pMemoryTypeIndex ) const VKMA_NOEXCEPT
   {
     return d.vmaFindMemoryTypeIndexForImageInfo( m_allocator, pImageCreateInfo, reinterpret_cast<const VmaAllocationCreateInfo *>( pAllocationCreateInfo ), pMemoryTypeIndex );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndexForImageInfo( const VkImageCreateInfo & imageCreateInfo, const AllocationCreateInfo & allocationCreateInfo, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<uint32_t>::type Allocator::findMemoryTypeIndexForImageInfo( const VkImageCreateInfo & imageCreateInfo, const AllocationCreateInfo & allocationCreateInfo ) const
   {
     uint32_t memoryTypeIndex;
     Result result = static_cast<Result>( d.vmaFindMemoryTypeIndexForImageInfo( m_allocator, &imageCreateInfo, reinterpret_cast<const VmaAllocationCreateInfo *>( &allocationCreateInfo ), &memoryTypeIndex ) );
@@ -5100,30 +4476,26 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::flushAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::flushAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT
   {
     d.vmaFlushAllocation( m_allocator, static_cast<VmaAllocation>( allocation ), offset, size );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::freeMemory( Allocation allocation, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::freeMemory( Allocation allocation ) const VKMA_NOEXCEPT
   {
     d.vmaFreeMemory( m_allocator, static_cast<VmaAllocation>( allocation ) );
   }
 
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::freeStatsString( char* pStatsString, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::freeStatsString( char* pStatsString ) const VKMA_NOEXCEPT
   {
     d.vmaFreeStatsString( m_allocator, pStatsString );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE char Allocator::freeStatsString( Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE char Allocator::freeStatsString(  ) const VKMA_NOEXCEPT
   {
     char statsString;
     d.vmaFreeStatsString( m_allocator, &statsString );
@@ -5132,15 +4504,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getAllocationInfo( Allocation allocation, AllocationInfo* pAllocationInfo, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getAllocationInfo( Allocation allocation, AllocationInfo* pAllocationInfo ) const VKMA_NOEXCEPT
   {
     d.vmaGetAllocationInfo( m_allocator, static_cast<VmaAllocation>( allocation ), reinterpret_cast< VmaAllocationInfo *>( pAllocationInfo ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::AllocationInfo Allocator::getAllocationInfo( Allocation allocation, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::AllocationInfo Allocator::getAllocationInfo( Allocation allocation ) const VKMA_NOEXCEPT
   {
     VKMA_NAMESPACE::AllocationInfo allocationInfo;
     d.vmaGetAllocationInfo( m_allocator, static_cast<VmaAllocation>( allocation ), reinterpret_cast<VmaAllocationInfo *>( &allocationInfo ) );
@@ -5149,15 +4519,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getBudget( Budget* pBudget, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getBudget( Budget* pBudget ) const VKMA_NOEXCEPT
   {
     d.vmaGetBudget( m_allocator, reinterpret_cast< VmaBudget *>( pBudget ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::Budget Allocator::getBudget( Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::Budget Allocator::getBudget(  ) const VKMA_NOEXCEPT
   {
     VKMA_NAMESPACE::Budget budget;
     d.vmaGetBudget( m_allocator, reinterpret_cast<VmaBudget *>( &budget ) );
@@ -5166,30 +4534,27 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getMemoryProperties( const VkPhysicalDeviceMemoryProperties** ppPhysicalDeviceMemoryProperties, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getMemoryProperties( const VkPhysicalDeviceMemoryProperties** ppPhysicalDeviceMemoryProperties ) const VKMA_NOEXCEPT
   {
     d.vmaGetMemoryProperties( m_allocator, ppPhysicalDeviceMemoryProperties );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getMemoryProperties( const VkPhysicalDeviceMemoryProperties & pPhysicalDeviceMemoryProperties, Dispatch const & d ) const VKMA_NOEXCEPT
+  template <>
+  VKMA_INLINE void Allocator::getMemoryProperties( const VkPhysicalDeviceMemoryProperties & pPhysicalDeviceMemoryProperties ) const VKMA_NOEXCEPT
   {
     d.vmaGetMemoryProperties( m_allocator, &pPhysicalDeviceMemoryProperties );
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getMemoryTypeProperties( uint32_t memoryTypeIndex, VkMemoryPropertyFlags* pFlags, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getMemoryTypeProperties( uint32_t memoryTypeIndex, VkMemoryPropertyFlags* pFlags ) const VKMA_NOEXCEPT
   {
     d.vmaGetMemoryTypeProperties( m_allocator, memoryTypeIndex, pFlags );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkMemoryPropertyFlags Allocator::getMemoryTypeProperties( uint32_t memoryTypeIndex, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkMemoryPropertyFlags Allocator::getMemoryTypeProperties( uint32_t memoryTypeIndex ) const VKMA_NOEXCEPT
   {
     VkMemoryPropertyFlags flags;
     d.vmaGetMemoryTypeProperties( m_allocator, memoryTypeIndex, &flags );
@@ -5198,45 +4563,41 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getPhysicalDeviceProperties( const VkPhysicalDeviceProperties** ppPhysicalDeviceProperties, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getPhysicalDeviceProperties( const VkPhysicalDeviceProperties** ppPhysicalDeviceProperties ) const VKMA_NOEXCEPT
   {
     d.vmaGetPhysicalDeviceProperties( m_allocator, ppPhysicalDeviceProperties );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getPhysicalDeviceProperties( const VkPhysicalDeviceProperties & pPhysicalDeviceProperties, Dispatch const & d ) const VKMA_NOEXCEPT
+  template <>
+  VKMA_INLINE void Allocator::getPhysicalDeviceProperties( const VkPhysicalDeviceProperties & pPhysicalDeviceProperties ) const VKMA_NOEXCEPT
   {
     d.vmaGetPhysicalDeviceProperties( m_allocator, &pPhysicalDeviceProperties );
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getPoolName( Pool pool, const char** ppName, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getPoolName( Pool pool, const char** ppName ) const VKMA_NOEXCEPT
   {
     d.vmaGetPoolName( m_allocator, static_cast<VmaPool>( pool ), ppName );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getPoolName( Pool pool, const char & pName, Dispatch const & d ) const VKMA_NOEXCEPT
+  template <>
+  VKMA_INLINE void Allocator::getPoolName( Pool pool, const char & pName ) const VKMA_NOEXCEPT
   {
     d.vmaGetPoolName( m_allocator, static_cast<VmaPool>( pool ), &pName );
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::getPoolStats( Pool pool, PoolStats* pPoolStats, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::getPoolStats( Pool pool, PoolStats* pPoolStats ) const VKMA_NOEXCEPT
   {
     d.vmaGetPoolStats( m_allocator, static_cast<VmaPool>( pool ), reinterpret_cast< VmaPoolStats *>( pPoolStats ) );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::PoolStats Allocator::getPoolStats( Pool pool, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VKMA_NAMESPACE::PoolStats Allocator::getPoolStats( Pool pool ) const VKMA_NOEXCEPT
   {
     VKMA_NAMESPACE::PoolStats poolStats;
     d.vmaGetPoolStats( m_allocator, static_cast<VmaPool>( pool ), reinterpret_cast<VmaPoolStats *>( &poolStats ) );
@@ -5245,22 +4606,19 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::invalidateAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::invalidateAllocation( Allocation allocation, VkDeviceSize offset, VkDeviceSize size ) const VKMA_NOEXCEPT
   {
     d.vmaInvalidateAllocation( m_allocator, static_cast<VmaAllocation>( allocation ), offset, size );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::makePoolAllocationsLost( Pool pool, size_t* pLostAllocationCount, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::makePoolAllocationsLost( Pool pool, size_t* pLostAllocationCount ) const VKMA_NOEXCEPT
   {
     d.vmaMakePoolAllocationsLost( m_allocator, static_cast<VmaPool>( pool ), pLostAllocationCount );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE size_t Allocator::makePoolAllocationsLost( Pool pool, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE size_t Allocator::makePoolAllocationsLost( Pool pool ) const VKMA_NOEXCEPT
   {
     size_t lostAllocationCount;
     d.vmaMakePoolAllocationsLost( m_allocator, static_cast<VmaPool>( pool ), &lostAllocationCount );
@@ -5269,15 +4627,13 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::mapMemory( Allocation allocation, void** ppData, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::mapMemory( Allocation allocation, void** ppData ) const VKMA_NOEXCEPT
   {
     return d.vmaMapMemory( m_allocator, static_cast<VmaAllocation>( allocation ), ppData );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void*>::type Allocator::mapMemory( Allocation allocation, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void*>::type Allocator::mapMemory( Allocation allocation ) const
   {
     void* pData;
     Result result = static_cast<Result>( d.vmaMapMemory( m_allocator, static_cast<VmaAllocation>( allocation ), &pData ) );
@@ -5287,14 +4643,12 @@ namespace VKMA_NAMESPACE
 
 
 #ifdef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::resizeAllocation( Allocation allocation, VkDeviceSize newSize, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE VkResult Allocator::resizeAllocation( Allocation allocation, VkDeviceSize newSize ) const VKMA_NOEXCEPT
   {
     return d.vmaResizeAllocation( m_allocator, static_cast<VmaAllocation>( allocation ), newSize );
   }
 #else
-  template <typename Dispatch>
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::resizeAllocation( Allocation allocation, VkDeviceSize newSize, Dispatch const & d ) const
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type Allocator::resizeAllocation( Allocation allocation, VkDeviceSize newSize ) const
   {
     Result result = static_cast<Result>( d.vmaResizeAllocation( m_allocator, static_cast<VmaAllocation>( allocation ), newSize ) );
     return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::resizeAllocation" );
@@ -5303,15 +4657,13 @@ namespace VKMA_NAMESPACE
 
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::setAllocationUserData( Allocation allocation, void* pUserData, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::setAllocationUserData( Allocation allocation, void* pUserData ) const VKMA_NOEXCEPT
   {
     d.vmaSetAllocationUserData( m_allocator, static_cast<VmaAllocation>( allocation ), pUserData );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_NODISCARD VKMA_INLINE void Allocator::setAllocationUserData( Allocation allocation, Dispatch const & d ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE void Allocator::setAllocationUserData( Allocation allocation ) const VKMA_NOEXCEPT
   {
     void userData;
     d.vmaSetAllocationUserData( m_allocator, static_cast<VmaAllocation>( allocation ), &userData );
@@ -5320,352 +4672,36 @@ namespace VKMA_NAMESPACE
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::setCurrentFrameIndex( uint32_t frameIndex, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::setCurrentFrameIndex( uint32_t frameIndex ) const VKMA_NOEXCEPT
   {
     d.vmaSetCurrentFrameIndex( m_allocator, frameIndex );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::setPoolName( Pool pool, const char* pName, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::setPoolName( Pool pool, const char* pName ) const VKMA_NOEXCEPT
   {
     d.vmaSetPoolName( m_allocator, static_cast<VmaPool>( pool ), pName );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::setPoolName( Pool pool, const char & name, Dispatch const & d ) const VKMA_NOEXCEPT
+  template <>
+  VKMA_INLINE void Allocator::setPoolName( Pool pool, const char & name ) const VKMA_NOEXCEPT
   {
     d.vmaSetPoolName( m_allocator, static_cast<VmaPool>( pool ), &name );
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
 
-  template <typename Dispatch>
-  VKMA_INLINE VkBool32 Allocator::touchAllocation( Allocation allocation, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE VkBool32 Allocator::touchAllocation( Allocation allocation ) const VKMA_NOEXCEPT
   {
     return d.vmaTouchAllocation( m_allocator, static_cast<VmaAllocation>( allocation ) );
   }
 
 
-  template <typename Dispatch>
-  VKMA_INLINE void Allocator::unmapMemory( Allocation allocation, Dispatch const & d  ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::unmapMemory( Allocation allocation ) const VKMA_NOEXCEPT
   {
     d.vmaUnmapMemory( m_allocator, static_cast<VmaAllocation>( allocation ) );
   }
-
-#if VKMA_ENABLE_DYNAMIC_LOADER_TOOL
-  class DynamicLoader
-  {
-  public:
-#  ifdef VKMA_NO_EXCEPTIONS
-    DynamicLoader( std::string const & vulkanLibraryName = {} ) VKMA_NOEXCEPT
-#  else
-    DynamicLoader( std::string const & vulkanLibraryName = {} )
-#  endif
-    {
-      if ( !vulkanLibraryName.empty() )
-      {
-#  if defined( __linux__ ) || defined( __APPLE__ )
-        m_library = dlopen( vulkanLibraryName.c_str(), RTLD_NOW | RTLD_LOCAL );
-#  elif defined( _WIN32 )
-        m_library = ::LoadLibraryA( vulkanLibraryName.c_str() );
-#  else
-#    error unsupported platform
-#  endif
-      }
-      else
-      {
-#  if defined( __linux__ )
-        m_library = dlopen( "libvulkan.so", RTLD_NOW | RTLD_LOCAL );
-        if ( m_library == nullptr )
-        {
-          m_library = dlopen( "libvulkan.so.1", RTLD_NOW | RTLD_LOCAL );
-        }
-#  elif defined( __APPLE__ )
-        m_library = dlopen( "libvulkan.dylib", RTLD_NOW | RTLD_LOCAL );
-#  elif defined( _WIN32 )
-        m_library = ::LoadLibraryA( "vulkan-1.dll" );
-#  else
-#    error unsupported platform
-#  endif
-      }
-
-#ifndef VKMA_NO_EXCEPTIONS
-      if ( m_library == nullptr )
-      {
-        // NOTE there should be an InitializationFailedError, but msvc insists on the symbol does not exist within the scope of this function.
-        throw std::runtime_error( "Failed to load vulkan library!" );
-      }
-#endif
-    }
-
-    DynamicLoader( DynamicLoader const& ) = delete;
-
-    DynamicLoader( DynamicLoader && other ) VKMA_NOEXCEPT : m_library(other.m_library)
-    {
-      other.m_library = nullptr;
-    }
-
-    DynamicLoader &operator=( DynamicLoader const& ) = delete;
-
-    DynamicLoader &operator=( DynamicLoader && other ) VKMA_NOEXCEPT
-    {
-      std::swap(m_library, other.m_library);
-      return *this;
-    }
-
-    ~DynamicLoader() VKMA_NOEXCEPT
-    {
-      if ( m_library )
-      {
-#  if defined( __linux__ ) || defined( __APPLE__ )
-        dlclose( m_library );
-#  elif defined( _WIN32 )
-        ::FreeLibrary( m_library );
-#  else
-#    error unsupported platform
-#  endif
-      }
-    }
-
-    template <typename T>
-    T getProcAddress( const char* function ) const VKMA_NOEXCEPT
-    {
-#  if defined( __linux__ ) || defined( __APPLE__ )
-      return (T)dlsym( m_library, function );
-#  elif defined( _WIN32 )
-      return (T)::GetProcAddress( m_library, function );
-#  else
-#    error unsupported platform
-#  endif
-    }
-
-    bool success() const VKMA_NOEXCEPT { return m_library != nullptr; }
-
-  private:
-#  if defined( __linux__ ) || defined( __APPLE__ )
-    void * m_library;
-#  elif defined( _WIN32 )
-    ::HINSTANCE m_library;
-#  else
-#    error unsupported platform
-#  endif
-  };
-#endif
-
-
-  class DispatchLoaderDynamic
-  {
-  public:
-    PFN_vmaAllocateMemory vmaAllocateMemory = 0;
-    PFN_vmaAllocateMemoryForBuffer vmaAllocateMemoryForBuffer = 0;
-    PFN_vmaAllocateMemoryForImage vmaAllocateMemoryForImage = 0;
-    PFN_vmaAllocateMemoryPages vmaAllocateMemoryPages = 0;
-    PFN_vmaBindBufferMemory vmaBindBufferMemory = 0;
-    PFN_vmaBindBufferMemory2 vmaBindBufferMemory2 = 0;
-    PFN_vmaBindImageMemory vmaBindImageMemory = 0;
-    PFN_vmaBindImageMemory2 vmaBindImageMemory2 = 0;
-    PFN_vmaBuildStatsString vmaBuildStatsString = 0;
-    PFN_vmaCalculateStats vmaCalculateStats = 0;
-    PFN_vmaCheckCorruption vmaCheckCorruption = 0;
-    PFN_vmaCheckPoolCorruption vmaCheckPoolCorruption = 0;
-    PFN_vmaCreateAllocator vmaCreateAllocator = 0;
-    PFN_vmaCreateBuffer vmaCreateBuffer = 0;
-    PFN_vmaCreateImage vmaCreateImage = 0;
-    PFN_vmaCreateLostAllocation vmaCreateLostAllocation = 0;
-    PFN_vmaCreatePool vmaCreatePool = 0;
-    PFN_vmaDefragment vmaDefragment = 0;
-    PFN_vmaDefragmentationBegin vmaDefragmentationBegin = 0;
-    PFN_vmaDefragmentationEnd vmaDefragmentationEnd = 0;
-    PFN_vmaDestroyAllocator vmaDestroyAllocator = 0;
-    PFN_vmaDestroyBuffer vmaDestroyBuffer = 0;
-    PFN_vmaDestroyImage vmaDestroyImage = 0;
-    PFN_vmaDestroyPool vmaDestroyPool = 0;
-    PFN_vmaFindMemoryTypeIndex vmaFindMemoryTypeIndex = 0;
-    PFN_vmaFindMemoryTypeIndexForBufferInfo vmaFindMemoryTypeIndexForBufferInfo = 0;
-    PFN_vmaFindMemoryTypeIndexForImageInfo vmaFindMemoryTypeIndexForImageInfo = 0;
-    PFN_vmaFlushAllocation vmaFlushAllocation = 0;
-    PFN_vmaFreeMemory vmaFreeMemory = 0;
-    PFN_vmaFreeMemoryPages vmaFreeMemoryPages = 0;
-    PFN_vmaFreeStatsString vmaFreeStatsString = 0;
-    PFN_vmaGetAllocationInfo vmaGetAllocationInfo = 0;
-    PFN_vmaGetBudget vmaGetBudget = 0;
-    PFN_vmaGetMemoryProperties vmaGetMemoryProperties = 0;
-    PFN_vmaGetMemoryTypeProperties vmaGetMemoryTypeProperties = 0;
-    PFN_vmaGetPhysicalDeviceProperties vmaGetPhysicalDeviceProperties = 0;
-    PFN_vmaGetPoolName vmaGetPoolName = 0;
-    PFN_vmaGetPoolStats vmaGetPoolStats = 0;
-    PFN_vmaInvalidateAllocation vmaInvalidateAllocation = 0;
-    PFN_vmaMakePoolAllocationsLost vmaMakePoolAllocationsLost = 0;
-    PFN_vmaMapMemory vmaMapMemory = 0;
-    PFN_vmaResizeAllocation vmaResizeAllocation = 0;
-    PFN_vmaSetAllocationUserData vmaSetAllocationUserData = 0;
-    PFN_vmaSetCurrentFrameIndex vmaSetCurrentFrameIndex = 0;
-    PFN_vmaSetPoolName vmaSetPoolName = 0;
-    PFN_vmaTouchAllocation vmaTouchAllocation = 0;
-    PFN_vmaUnmapMemory vmaUnmapMemory = 0;
-
-  public:
-    DispatchLoaderDynamic() VKMA_NOEXCEPT = default;
-
-#if !defined(VMA_NO_PROTOTYPES)
-    // This interface is designed to be used for per-device function pointers in combination with a linked vulkan library.
-    template <typename DynamicLoader>
-    void init(VKMA_NAMESPACE::Instance const& instance, VKMA_NAMESPACE::Device const& device, DynamicLoader const& dl) VKMA_NOEXCEPT
-    {
-      PFN_vmaGetInstanceProcAddr getInstanceProcAddr = dl.template getProcAddress<PFN_vmaGetInstanceProcAddr>("vmaGetInstanceProcAddr");
-      PFN_vmaGetDeviceProcAddr getDeviceProcAddr = dl.template getProcAddress<PFN_vmaGetDeviceProcAddr>("vmaGetDeviceProcAddr");
-      init(static_cast<VmaInstance>(instance), getInstanceProcAddr, static_cast<VmaDevice>(device), device ? getDeviceProcAddr : nullptr);
-    }
-
-    // This interface is designed to be used for per-device function pointers in combination with a linked vulkan library.
-    template <typename DynamicLoader
-#if VKMA_ENABLE_DYNAMIC_LOADER_TOOL
-      = VKMA_NAMESPACE::DynamicLoader
-#endif
-    >
-    void init(VKMA_NAMESPACE::Instance const& instance, VKMA_NAMESPACE::Device const& device) VKMA_NOEXCEPT
-    {
-      static DynamicLoader dl;
-      init(instance, device, dl);
-    }
-#endif // !defined(VMA_NO_PROTOTYPES)
-
-    DispatchLoaderDynamic(PFN_vmaGetInstanceProcAddr getInstanceProcAddr) VKMA_NOEXCEPT
-    {
-      init(getInstanceProcAddr);
-    }
-
-    void init( PFN_vmaGetInstanceProcAddr getInstanceProcAddr ) VKMA_NOEXCEPT
-    {
-      VKMA_ASSERT(getInstanceProcAddr);
-
-      vmaGetInstanceProcAddr = getInstanceProcAddr;
-      vmaCreateAllocator = PFN_vmaCreateAllocator( vmaGetInstanceProcAddr( NULL, "vmaCreateAllocator" ) );
-    }
-
-    // This interface does not require a linked vulkan library.
-    DispatchLoaderDynamic( VmaInstance instance, PFN_vmaGetInstanceProcAddr getInstanceProcAddr, VmaDevice device = VMA_NULL_HANDLE, PFN_vmaGetDeviceProcAddr getDeviceProcAddr = nullptr ) VKMA_NOEXCEPT
-    {
-      init( instance, getInstanceProcAddr, device, getDeviceProcAddr );
-    }
-
-    // This interface does not require a linked vulkan library.
-    void init( VmaInstance instance, PFN_vmaGetInstanceProcAddr getInstanceProcAddr, VmaDevice device = VMA_NULL_HANDLE, PFN_vmaGetDeviceProcAddr /*getDeviceProcAddr*/ = nullptr ) VKMA_NOEXCEPT
-    {
-      VKMA_ASSERT(instance && getInstanceProcAddr);
-      vmaGetInstanceProcAddr = getInstanceProcAddr;
-      init( VKMA_NAMESPACE::Instance(instance) );
-      if (device) {
-        init( VKMA_NAMESPACE::Device(device) );
-      }
-    }
-
-    void init( VKMA_NAMESPACE::Instance instanceCpp ) VKMA_NOEXCEPT
-    {
-      VmaInstance instance = static_cast<VmaInstance>(instanceCpp);
-      vmaAllocateMemory = PFN_vmaAllocateMemory( vmaGetInstanceProcAddr( instance, "vmaAllocateMemory" ) );
-      vmaAllocateMemoryForBuffer = PFN_vmaAllocateMemoryForBuffer( vmaGetInstanceProcAddr( instance, "vmaAllocateMemoryForBuffer" ) );
-      vmaAllocateMemoryForImage = PFN_vmaAllocateMemoryForImage( vmaGetInstanceProcAddr( instance, "vmaAllocateMemoryForImage" ) );
-      vmaAllocateMemoryPages = PFN_vmaAllocateMemoryPages( vmaGetInstanceProcAddr( instance, "vmaAllocateMemoryPages" ) );
-      vmaBindBufferMemory = PFN_vmaBindBufferMemory( vmaGetInstanceProcAddr( instance, "vmaBindBufferMemory" ) );
-      vmaBindBufferMemory2 = PFN_vmaBindBufferMemory2( vmaGetInstanceProcAddr( instance, "vmaBindBufferMemory2" ) );
-      vmaBindImageMemory = PFN_vmaBindImageMemory( vmaGetInstanceProcAddr( instance, "vmaBindImageMemory" ) );
-      vmaBindImageMemory2 = PFN_vmaBindImageMemory2( vmaGetInstanceProcAddr( instance, "vmaBindImageMemory2" ) );
-      vmaBuildStatsString = PFN_vmaBuildStatsString( vmaGetInstanceProcAddr( instance, "vmaBuildStatsString" ) );
-      vmaCalculateStats = PFN_vmaCalculateStats( vmaGetInstanceProcAddr( instance, "vmaCalculateStats" ) );
-      vmaCheckCorruption = PFN_vmaCheckCorruption( vmaGetInstanceProcAddr( instance, "vmaCheckCorruption" ) );
-      vmaCheckPoolCorruption = PFN_vmaCheckPoolCorruption( vmaGetInstanceProcAddr( instance, "vmaCheckPoolCorruption" ) );
-      vmaCreateBuffer = PFN_vmaCreateBuffer( vmaGetInstanceProcAddr( instance, "vmaCreateBuffer" ) );
-      vmaCreateImage = PFN_vmaCreateImage( vmaGetInstanceProcAddr( instance, "vmaCreateImage" ) );
-      vmaCreateLostAllocation = PFN_vmaCreateLostAllocation( vmaGetInstanceProcAddr( instance, "vmaCreateLostAllocation" ) );
-      vmaCreatePool = PFN_vmaCreatePool( vmaGetInstanceProcAddr( instance, "vmaCreatePool" ) );
-      vmaDefragment = PFN_vmaDefragment( vmaGetInstanceProcAddr( instance, "vmaDefragment" ) );
-      vmaDefragmentationBegin = PFN_vmaDefragmentationBegin( vmaGetInstanceProcAddr( instance, "vmaDefragmentationBegin" ) );
-      vmaDefragmentationEnd = PFN_vmaDefragmentationEnd( vmaGetInstanceProcAddr( instance, "vmaDefragmentationEnd" ) );
-      vmaDestroyAllocator = PFN_vmaDestroyAllocator( vmaGetInstanceProcAddr( instance, "vmaDestroyAllocator" ) );
-      vmaDestroyBuffer = PFN_vmaDestroyBuffer( vmaGetInstanceProcAddr( instance, "vmaDestroyBuffer" ) );
-      vmaDestroyImage = PFN_vmaDestroyImage( vmaGetInstanceProcAddr( instance, "vmaDestroyImage" ) );
-      vmaDestroyPool = PFN_vmaDestroyPool( vmaGetInstanceProcAddr( instance, "vmaDestroyPool" ) );
-      vmaFindMemoryTypeIndex = PFN_vmaFindMemoryTypeIndex( vmaGetInstanceProcAddr( instance, "vmaFindMemoryTypeIndex" ) );
-      vmaFindMemoryTypeIndexForBufferInfo = PFN_vmaFindMemoryTypeIndexForBufferInfo( vmaGetInstanceProcAddr( instance, "vmaFindMemoryTypeIndexForBufferInfo" ) );
-      vmaFindMemoryTypeIndexForImageInfo = PFN_vmaFindMemoryTypeIndexForImageInfo( vmaGetInstanceProcAddr( instance, "vmaFindMemoryTypeIndexForImageInfo" ) );
-      vmaFlushAllocation = PFN_vmaFlushAllocation( vmaGetInstanceProcAddr( instance, "vmaFlushAllocation" ) );
-      vmaFreeMemory = PFN_vmaFreeMemory( vmaGetInstanceProcAddr( instance, "vmaFreeMemory" ) );
-      vmaFreeMemoryPages = PFN_vmaFreeMemoryPages( vmaGetInstanceProcAddr( instance, "vmaFreeMemoryPages" ) );
-      vmaFreeStatsString = PFN_vmaFreeStatsString( vmaGetInstanceProcAddr( instance, "vmaFreeStatsString" ) );
-      vmaGetAllocationInfo = PFN_vmaGetAllocationInfo( vmaGetInstanceProcAddr( instance, "vmaGetAllocationInfo" ) );
-      vmaGetBudget = PFN_vmaGetBudget( vmaGetInstanceProcAddr( instance, "vmaGetBudget" ) );
-      vmaGetMemoryProperties = PFN_vmaGetMemoryProperties( vmaGetInstanceProcAddr( instance, "vmaGetMemoryProperties" ) );
-      vmaGetMemoryTypeProperties = PFN_vmaGetMemoryTypeProperties( vmaGetInstanceProcAddr( instance, "vmaGetMemoryTypeProperties" ) );
-      vmaGetPhysicalDeviceProperties = PFN_vmaGetPhysicalDeviceProperties( vmaGetInstanceProcAddr( instance, "vmaGetPhysicalDeviceProperties" ) );
-      vmaGetPoolName = PFN_vmaGetPoolName( vmaGetInstanceProcAddr( instance, "vmaGetPoolName" ) );
-      vmaGetPoolStats = PFN_vmaGetPoolStats( vmaGetInstanceProcAddr( instance, "vmaGetPoolStats" ) );
-      vmaInvalidateAllocation = PFN_vmaInvalidateAllocation( vmaGetInstanceProcAddr( instance, "vmaInvalidateAllocation" ) );
-      vmaMakePoolAllocationsLost = PFN_vmaMakePoolAllocationsLost( vmaGetInstanceProcAddr( instance, "vmaMakePoolAllocationsLost" ) );
-      vmaMapMemory = PFN_vmaMapMemory( vmaGetInstanceProcAddr( instance, "vmaMapMemory" ) );
-      vmaResizeAllocation = PFN_vmaResizeAllocation( vmaGetInstanceProcAddr( instance, "vmaResizeAllocation" ) );
-      vmaSetAllocationUserData = PFN_vmaSetAllocationUserData( vmaGetInstanceProcAddr( instance, "vmaSetAllocationUserData" ) );
-      vmaSetCurrentFrameIndex = PFN_vmaSetCurrentFrameIndex( vmaGetInstanceProcAddr( instance, "vmaSetCurrentFrameIndex" ) );
-      vmaSetPoolName = PFN_vmaSetPoolName( vmaGetInstanceProcAddr( instance, "vmaSetPoolName" ) );
-      vmaTouchAllocation = PFN_vmaTouchAllocation( vmaGetInstanceProcAddr( instance, "vmaTouchAllocation" ) );
-      vmaUnmapMemory = PFN_vmaUnmapMemory( vmaGetInstanceProcAddr( instance, "vmaUnmapMemory" ) );
-    }
-
-    void init( VKMA_NAMESPACE::Device deviceCpp ) VKMA_NOEXCEPT
-    {
-      VmaDevice device = static_cast<VmaDevice>(deviceCpp);
-      vmaAllocateMemory = PFN_vmaAllocateMemory( vmaGetDeviceProcAddr( device, "vmaAllocateMemory" ) );
-      vmaAllocateMemoryForBuffer = PFN_vmaAllocateMemoryForBuffer( vmaGetDeviceProcAddr( device, "vmaAllocateMemoryForBuffer" ) );
-      vmaAllocateMemoryForImage = PFN_vmaAllocateMemoryForImage( vmaGetDeviceProcAddr( device, "vmaAllocateMemoryForImage" ) );
-      vmaAllocateMemoryPages = PFN_vmaAllocateMemoryPages( vmaGetDeviceProcAddr( device, "vmaAllocateMemoryPages" ) );
-      vmaBindBufferMemory = PFN_vmaBindBufferMemory( vmaGetDeviceProcAddr( device, "vmaBindBufferMemory" ) );
-      vmaBindBufferMemory2 = PFN_vmaBindBufferMemory2( vmaGetDeviceProcAddr( device, "vmaBindBufferMemory2" ) );
-      vmaBindImageMemory = PFN_vmaBindImageMemory( vmaGetDeviceProcAddr( device, "vmaBindImageMemory" ) );
-      vmaBindImageMemory2 = PFN_vmaBindImageMemory2( vmaGetDeviceProcAddr( device, "vmaBindImageMemory2" ) );
-      vmaBuildStatsString = PFN_vmaBuildStatsString( vmaGetDeviceProcAddr( device, "vmaBuildStatsString" ) );
-      vmaCalculateStats = PFN_vmaCalculateStats( vmaGetDeviceProcAddr( device, "vmaCalculateStats" ) );
-      vmaCheckCorruption = PFN_vmaCheckCorruption( vmaGetDeviceProcAddr( device, "vmaCheckCorruption" ) );
-      vmaCheckPoolCorruption = PFN_vmaCheckPoolCorruption( vmaGetDeviceProcAddr( device, "vmaCheckPoolCorruption" ) );
-      vmaCreateBuffer = PFN_vmaCreateBuffer( vmaGetDeviceProcAddr( device, "vmaCreateBuffer" ) );
-      vmaCreateImage = PFN_vmaCreateImage( vmaGetDeviceProcAddr( device, "vmaCreateImage" ) );
-      vmaCreateLostAllocation = PFN_vmaCreateLostAllocation( vmaGetDeviceProcAddr( device, "vmaCreateLostAllocation" ) );
-      vmaCreatePool = PFN_vmaCreatePool( vmaGetDeviceProcAddr( device, "vmaCreatePool" ) );
-      vmaDefragment = PFN_vmaDefragment( vmaGetDeviceProcAddr( device, "vmaDefragment" ) );
-      vmaDefragmentationBegin = PFN_vmaDefragmentationBegin( vmaGetDeviceProcAddr( device, "vmaDefragmentationBegin" ) );
-      vmaDefragmentationEnd = PFN_vmaDefragmentationEnd( vmaGetDeviceProcAddr( device, "vmaDefragmentationEnd" ) );
-      vmaDestroyAllocator = PFN_vmaDestroyAllocator( vmaGetDeviceProcAddr( device, "vmaDestroyAllocator" ) );
-      vmaDestroyBuffer = PFN_vmaDestroyBuffer( vmaGetDeviceProcAddr( device, "vmaDestroyBuffer" ) );
-      vmaDestroyImage = PFN_vmaDestroyImage( vmaGetDeviceProcAddr( device, "vmaDestroyImage" ) );
-      vmaDestroyPool = PFN_vmaDestroyPool( vmaGetDeviceProcAddr( device, "vmaDestroyPool" ) );
-      vmaFindMemoryTypeIndex = PFN_vmaFindMemoryTypeIndex( vmaGetDeviceProcAddr( device, "vmaFindMemoryTypeIndex" ) );
-      vmaFindMemoryTypeIndexForBufferInfo = PFN_vmaFindMemoryTypeIndexForBufferInfo( vmaGetDeviceProcAddr( device, "vmaFindMemoryTypeIndexForBufferInfo" ) );
-      vmaFindMemoryTypeIndexForImageInfo = PFN_vmaFindMemoryTypeIndexForImageInfo( vmaGetDeviceProcAddr( device, "vmaFindMemoryTypeIndexForImageInfo" ) );
-      vmaFlushAllocation = PFN_vmaFlushAllocation( vmaGetDeviceProcAddr( device, "vmaFlushAllocation" ) );
-      vmaFreeMemory = PFN_vmaFreeMemory( vmaGetDeviceProcAddr( device, "vmaFreeMemory" ) );
-      vmaFreeMemoryPages = PFN_vmaFreeMemoryPages( vmaGetDeviceProcAddr( device, "vmaFreeMemoryPages" ) );
-      vmaFreeStatsString = PFN_vmaFreeStatsString( vmaGetDeviceProcAddr( device, "vmaFreeStatsString" ) );
-      vmaGetAllocationInfo = PFN_vmaGetAllocationInfo( vmaGetDeviceProcAddr( device, "vmaGetAllocationInfo" ) );
-      vmaGetBudget = PFN_vmaGetBudget( vmaGetDeviceProcAddr( device, "vmaGetBudget" ) );
-      vmaGetMemoryProperties = PFN_vmaGetMemoryProperties( vmaGetDeviceProcAddr( device, "vmaGetMemoryProperties" ) );
-      vmaGetMemoryTypeProperties = PFN_vmaGetMemoryTypeProperties( vmaGetDeviceProcAddr( device, "vmaGetMemoryTypeProperties" ) );
-      vmaGetPhysicalDeviceProperties = PFN_vmaGetPhysicalDeviceProperties( vmaGetDeviceProcAddr( device, "vmaGetPhysicalDeviceProperties" ) );
-      vmaGetPoolName = PFN_vmaGetPoolName( vmaGetDeviceProcAddr( device, "vmaGetPoolName" ) );
-      vmaGetPoolStats = PFN_vmaGetPoolStats( vmaGetDeviceProcAddr( device, "vmaGetPoolStats" ) );
-      vmaInvalidateAllocation = PFN_vmaInvalidateAllocation( vmaGetDeviceProcAddr( device, "vmaInvalidateAllocation" ) );
-      vmaMakePoolAllocationsLost = PFN_vmaMakePoolAllocationsLost( vmaGetDeviceProcAddr( device, "vmaMakePoolAllocationsLost" ) );
-      vmaMapMemory = PFN_vmaMapMemory( vmaGetDeviceProcAddr( device, "vmaMapMemory" ) );
-      vmaResizeAllocation = PFN_vmaResizeAllocation( vmaGetDeviceProcAddr( device, "vmaResizeAllocation" ) );
-      vmaSetAllocationUserData = PFN_vmaSetAllocationUserData( vmaGetDeviceProcAddr( device, "vmaSetAllocationUserData" ) );
-      vmaSetCurrentFrameIndex = PFN_vmaSetCurrentFrameIndex( vmaGetDeviceProcAddr( device, "vmaSetCurrentFrameIndex" ) );
-      vmaSetPoolName = PFN_vmaSetPoolName( vmaGetDeviceProcAddr( device, "vmaSetPoolName" ) );
-      vmaTouchAllocation = PFN_vmaTouchAllocation( vmaGetDeviceProcAddr( device, "vmaTouchAllocation" ) );
-      vmaUnmapMemory = PFN_vmaUnmapMemory( vmaGetDeviceProcAddr( device, "vmaUnmapMemory" ) );
-    }
-  };
-
 } // namespace VKMA_NAMESPACE
 
 namespace std
