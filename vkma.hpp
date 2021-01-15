@@ -1309,7 +1309,7 @@ namespace VKMA_NAMESPACE
       return m_mask;
     }
 
-#if defined( VULKAN_HPP_FLAGS_MASK_TYPE_AS_PUBLIC )
+#if defined( VKMA_FLAGS_MASK_TYPE_AS_PUBLIC )
   public:
 #else
   private:
@@ -1724,10 +1724,10 @@ namespace VKMA_NAMESPACE
     eVmaAllocationCreateStrategyBestFit          = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT,
     eVmaAllocationCreateStrategyWorstFit         = VMA_ALLOCATION_CREATE_STRATEGY_WORST_FIT_BIT,
     eVmaAllocationCreateStrategyFirstFit         = VMA_ALLOCATION_CREATE_STRATEGY_FIRST_FIT_BIT,
-    eVmaAllocationCreateStrategyMinMemory        = VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT,
-    eVmaAllocationCreateStrategyMinTime          = VMA_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT,
+    eVmaAllocationCreateStrategyMask             = VMA_ALLOCATION_CREATE_STRATEGY_MASK,
     eVmaAllocationCreateStrategyMinFragmentation = VMA_ALLOCATION_CREATE_STRATEGY_MIN_FRAGMENTATION_BIT,
-    eVmaAllocationCreateStrategyMask             = VMA_ALLOCATION_CREATE_STRATEGY_MASK
+    eVmaAllocationCreateStrategyMinMemory        = VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT,
+    eVmaAllocationCreateStrategyMinTime          = VMA_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT
   };
 
   VKMA_INLINE std::string to_string( AllocationCreateFlagBits value )
@@ -1747,11 +1747,6 @@ namespace VKMA_NAMESPACE
       case AllocationCreateFlagBits::eVmaAllocationCreateStrategyBestFit: return "VmaAllocationCreateStrategyBestFit";
       case AllocationCreateFlagBits::eVmaAllocationCreateStrategyWorstFit: return "VmaAllocationCreateStrategyWorstFit";
       case AllocationCreateFlagBits::eVmaAllocationCreateStrategyFirstFit: return "VmaAllocationCreateStrategyFirstFit";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinMemory:
-        return "VmaAllocationCreateStrategyMinMemory";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinTime: return "VmaAllocationCreateStrategyMinTime";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinFragmentation:
-        return "VmaAllocationCreateStrategyMinFragmentation";
       case AllocationCreateFlagBits::eVmaAllocationCreateStrategyMask: return "VmaAllocationCreateStrategyMask";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
@@ -1889,11 +1884,11 @@ namespace VKMA_NAMESPACE
     eVkOperationDeferredKhr                        = VK_OPERATION_DEFERRED_KHR,
     eVkOperationNotDeferredKhr                     = VK_OPERATION_NOT_DEFERRED_KHR,
     eVkPipelineCompileRequiredExt                  = VK_PIPELINE_COMPILE_REQUIRED_EXT,
-    eVkErrorOutOfPoolMemoryKhr                     = VK_ERROR_OUT_OF_POOL_MEMORY_KHR,
-    eVkErrorInvalidExternalHandleKhr               = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
     eVkErrorFragmentationExt                       = VK_ERROR_FRAGMENTATION_EXT,
     eVkErrorInvalidDeviceAddressExt                = VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,
+    eVkErrorInvalidExternalHandleKhr               = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
     eVkErrorInvalidOpaqueCaptureAddressKhr         = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR,
+    eVkErrorOutOfPoolMemoryKhr                     = VK_ERROR_OUT_OF_POOL_MEMORY_KHR,
     eVkErrorPipelineCompileRequiredExt             = VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT
   };
 
@@ -1940,12 +1935,6 @@ namespace VKMA_NAMESPACE
       case Result::eVkOperationDeferredKhr: return "VkOperationDeferredKhr";
       case Result::eVkOperationNotDeferredKhr: return "VkOperationNotDeferredKhr";
       case Result::eVkPipelineCompileRequiredExt: return "VkPipelineCompileRequiredExt";
-      case Result::eVkErrorOutOfPoolMemoryKhr: return "VkErrorOutOfPoolMemoryKhr";
-      case Result::eVkErrorInvalidExternalHandleKhr: return "VkErrorInvalidExternalHandleKhr";
-      case Result::eVkErrorFragmentationExt: return "VkErrorFragmentationExt";
-      case Result::eVkErrorInvalidDeviceAddressExt: return "VkErrorInvalidDeviceAddressExt";
-      case Result::eVkErrorInvalidOpaqueCaptureAddressKhr: return "VkErrorInvalidOpaqueCaptureAddressKhr";
-      case Result::eVkErrorPipelineCompileRequiredExt: return "VkErrorPipelineCompileRequiredExt";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
@@ -1969,9 +1958,6 @@ namespace VKMA_NAMESPACE
                  VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyBestFit ) |
                  VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyWorstFit ) |
                  VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyFirstFit ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinMemory ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinTime ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyMinFragmentation ) |
                  VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyMask )
     };
   };
