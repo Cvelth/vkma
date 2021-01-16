@@ -1,10 +1,5 @@
 // Copyright (c) 2021 Cvelth (cvelth.mail@gmail.com)
 // SPDX-License-Identifier: Unlicense.
-//
-// DO NOT MODIFY MANUALLY!
-// This file was generated using [generator](https://github.com/Cvelth/vkma_xml_generator).
-// Generated files are licensed under [The Unlicense](https://unlicense.org).
-// The generator itself is licensed under [MIT License](https://www.mit.edu/~amini/LICENSE.md).
 
 // This header is generated using [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp)'s
 // [fork](https://github.com/Cvelth/vkma_vulkan_hpp_fork).
@@ -125,6 +120,8 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #    ifdef VMA_STATS_STRING_ENABLED
 #      define VKMA_STATS_STRING_ENABLED VMA_STATS_STRING_ENABLED
 #    endif
+
+#    define VKMA_NULL_HANDLE VK_NULL_HANDLE
 
 VK_DEFINE_HANDLE( VkmaAllocator )                                // parent: none
 VK_DEFINE_HANDLE( VkmaBuffer )                                   // parent: VkmaAllocator
@@ -4536,7 +4533,7 @@ namespace VKMA_NAMESPACE
       allocateMemory( const VkMemoryRequirements & vkMemoryRequirements,
                       const AllocationCreateInfo & createInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation>>::type
                                       allocateMemoryUnique( const VkMemoryRequirements & vkMemoryRequirements,
                                                             const AllocationCreateInfo & createInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
@@ -4549,7 +4546,7 @@ namespace VKMA_NAMESPACE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocation>::type
       allocateMemoryForBuffer( VkBuffer buffer, const AllocationCreateInfo & createInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation>>::type
       allocateMemoryForBufferUnique( VkBuffer buffer, const AllocationCreateInfo & createInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -4561,7 +4558,7 @@ namespace VKMA_NAMESPACE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocation>::type
       allocateMemoryForImage( VkImage image, const AllocationCreateInfo & createInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation>>::type
       allocateMemoryForImageUnique( VkImage image, const AllocationCreateInfo & createInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -4576,7 +4573,7 @@ namespace VKMA_NAMESPACE
                            const AllocationCreateInfo & createInfo,
                            size_t                       allocationCount ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation>>::type
                                       allocateMemoryPagesUnique( const VkMemoryRequirements & vkMemoryRequirements,
                                                                  const AllocationCreateInfo & createInfo,
                                                                  size_t                       allocationCount ) const;
@@ -4648,7 +4645,7 @@ namespace VKMA_NAMESPACE
       createBuffer( const VkBufferCreateInfo &   bufferCreateInfo,
                     const AllocationCreateInfo & allocationCreateInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Buffer, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Buffer>>::type
                                       createBufferUnique( const VkBufferCreateInfo &   bufferCreateInfo,
                                                           const AllocationCreateInfo & allocationCreateInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
@@ -4660,9 +4657,8 @@ namespace VKMA_NAMESPACE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<DefragmentationContext>::type
       createDefragmentationContext( const DefragmentationInfo2 & info ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE
-      typename ResultValueType<UniqueHandle<DefragmentationContext, Dispatch>>::type
-      createDefragmentationContextUnique( const DefragmentationInfo2 & info ) const;
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<DefragmentationContext>>::type
+                                      createDefragmentationContextUnique( const DefragmentationInfo2 & info ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
@@ -4673,7 +4669,7 @@ namespace VKMA_NAMESPACE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Image>::type
       createImage( const VkImageCreateInfo & imageCreateInfo, const AllocationCreateInfo & allocationCreateInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Image, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Image>>::type
                                       createImageUnique( const VkImageCreateInfo &    imageCreateInfo,
                                                          const AllocationCreateInfo & allocationCreateInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
@@ -4683,7 +4679,7 @@ namespace VKMA_NAMESPACE
 #ifndef VKMA_DISABLE_ENHANCED_MODE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocation>::type createLostAllocation() const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocation>>::type
                                       createLostAllocationUnique() const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -4693,7 +4689,7 @@ namespace VKMA_NAMESPACE
     VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Pool>::type
       createPool( const PoolCreateInfo & createInfo ) const;
 #  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool, Dispatch>>::type
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Pool>>::type
                                       createPoolUnique( const PoolCreateInfo & createInfo ) const;
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
@@ -4870,7 +4866,7 @@ namespace VKMA_NAMESPACE
   VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<Allocator>::type
     createAllocator( const AllocatorCreateInfo & createInfo );
 #  ifndef VKMA_NO_SMART_HANDLE
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator, Dispatch>>::type
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<Allocator>>::type
                                     createAllocatorUnique( const AllocatorCreateInfo & createInfo );
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
