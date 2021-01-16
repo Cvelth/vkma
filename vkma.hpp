@@ -92,7 +92,7 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #    include <compare>
 #  endif
 
-// START_EXTERNAL_BINDINGS
+// External bindings file:
 #  ifndef VKMA_BINDINGS_HPP
 #    define VKMA_BINDINGS_HPP
 
@@ -626,7 +626,7 @@ inline void vkmaGetImageAllocation( VkmaImage image, VkmaAllocation * pAllocatio
 // *pDefragmentationStats)
 
 #  endif  // VKMA_BINDINGS_HPP
-// END_EXTERNAL_BINDINGS
+// The end of an external bindings file.
 
 // 32-bit vulkan is not typesafe for handles, so don't allow copy constructors on this platform by default.
 // To enable this feature on 32-bit platforms please define VKMA_TYPESAFE_CONVERSION
@@ -1843,95 +1843,94 @@ namespace VKMA_NAMESPACE
 
   enum class Result
   {
-    eVkSuccess                                     = VK_SUCCESS,
-    eVkNotReady                                    = VK_NOT_READY,
-    eVkTimeout                                     = VK_TIMEOUT,
-    eVkEventSet                                    = VK_EVENT_SET,
-    eVkEventReset                                  = VK_EVENT_RESET,
-    eVkIncomplete                                  = VK_INCOMPLETE,
-    eVkErrorOutOfHostMemory                        = VK_ERROR_OUT_OF_HOST_MEMORY,
-    eVkErrorOutOfDeviceMemory                      = VK_ERROR_OUT_OF_DEVICE_MEMORY,
-    eVkErrorInitializationFailed                   = VK_ERROR_INITIALIZATION_FAILED,
-    eVkErrorDeviceLost                             = VK_ERROR_DEVICE_LOST,
-    eVkErrorMemoryMapFailed                        = VK_ERROR_MEMORY_MAP_FAILED,
-    eVkErrorLayerNotPresent                        = VK_ERROR_LAYER_NOT_PRESENT,
-    eVkErrorExtensionNotPresent                    = VK_ERROR_EXTENSION_NOT_PRESENT,
-    eVkErrorFeatureNotPresent                      = VK_ERROR_FEATURE_NOT_PRESENT,
-    eVkErrorIncompatibleDriver                     = VK_ERROR_INCOMPATIBLE_DRIVER,
-    eVkErrorTooManyObjects                         = VK_ERROR_TOO_MANY_OBJECTS,
-    eVkErrorFormatNotSupported                     = VK_ERROR_FORMAT_NOT_SUPPORTED,
-    eVkErrorFragmentedPool                         = VK_ERROR_FRAGMENTED_POOL,
-    eVkErrorUnknown                                = VK_ERROR_UNKNOWN,
-    eVkErrorOutOfPoolMemory                        = VK_ERROR_OUT_OF_POOL_MEMORY,
-    eVkErrorInvalidExternalHandle                  = VK_ERROR_INVALID_EXTERNAL_HANDLE,
-    eVkErrorFragmentation                          = VK_ERROR_FRAGMENTATION,
-    eVkErrorInvalidOpaqueCaptureAddress            = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,
-    eVkErrorSurfaceLostKhr                         = VK_ERROR_SURFACE_LOST_KHR,
-    eVkErrorNativeWindowInUseKhr                   = VK_ERROR_NATIVE_WINDOW_IN_USE_KHR,
-    eVkSuboptimalKhr                               = VK_SUBOPTIMAL_KHR,
-    eVkErrorOutOfDateKhr                           = VK_ERROR_OUT_OF_DATE_KHR,
-    eVkErrorIncompatibleDisplayKhr                 = VK_ERROR_INCOMPATIBLE_DISPLAY_KHR,
-    eVkErrorValidationFailedExt                    = VK_ERROR_VALIDATION_FAILED_EXT,
-    eVkErrorInvalidShaderNv                        = VK_ERROR_INVALID_SHADER_NV,
-    eVkErrorInvalidDrmFormatModifierPlaneLayoutExt = VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT,
-    eVkErrorNotPermittedExt                        = VK_ERROR_NOT_PERMITTED_EXT,
-    eVkErrorFullScreenExclusiveModeLostExt         = VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,
-    eVkThreadIdleKhr                               = VK_THREAD_IDLE_KHR,
-    eVkThreadDoneKhr                               = VK_THREAD_DONE_KHR,
-    eVkOperationDeferredKhr                        = VK_OPERATION_DEFERRED_KHR,
-    eVkOperationNotDeferredKhr                     = VK_OPERATION_NOT_DEFERRED_KHR,
-    eVkPipelineCompileRequiredExt                  = VK_PIPELINE_COMPILE_REQUIRED_EXT,
-    eVkErrorFragmentationExt                       = VK_ERROR_FRAGMENTATION_EXT,
-    eVkErrorInvalidDeviceAddressExt                = VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,
-    eVkErrorInvalidExternalHandleKhr               = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
-    eVkErrorInvalidOpaqueCaptureAddressKhr         = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR,
-    eVkErrorOutOfPoolMemoryKhr                     = VK_ERROR_OUT_OF_POOL_MEMORY_KHR,
-    eVkErrorPipelineCompileRequiredExt             = VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT
+    eSuccess                                     = VK_SUCCESS,
+    eNotReady                                    = VK_NOT_READY,
+    eTimeout                                     = VK_TIMEOUT,
+    eEventSet                                    = VK_EVENT_SET,
+    eEventReset                                  = VK_EVENT_RESET,
+    eIncomplete                                  = VK_INCOMPLETE,
+    eErrorOutOfHostMemory                        = VK_ERROR_OUT_OF_HOST_MEMORY,
+    eErrorOutOfDeviceMemory                      = VK_ERROR_OUT_OF_DEVICE_MEMORY,
+    eErrorInitializationFailed                   = VK_ERROR_INITIALIZATION_FAILED,
+    eErrorDeviceLost                             = VK_ERROR_DEVICE_LOST,
+    eErrorMemoryMapFailed                        = VK_ERROR_MEMORY_MAP_FAILED,
+    eErrorLayerNotPresent                        = VK_ERROR_LAYER_NOT_PRESENT,
+    eErrorExtensionNotPresent                    = VK_ERROR_EXTENSION_NOT_PRESENT,
+    eErrorFeatureNotPresent                      = VK_ERROR_FEATURE_NOT_PRESENT,
+    eErrorIncompatibleDriver                     = VK_ERROR_INCOMPATIBLE_DRIVER,
+    eErrorTooManyObjects                         = VK_ERROR_TOO_MANY_OBJECTS,
+    eErrorFormatNotSupported                     = VK_ERROR_FORMAT_NOT_SUPPORTED,
+    eErrorFragmentedPool                         = VK_ERROR_FRAGMENTED_POOL,
+    eErrorUnknown                                = VK_ERROR_UNKNOWN,
+    eErrorOutOfPoolMemory                        = VK_ERROR_OUT_OF_POOL_MEMORY,
+    eErrorInvalidExternalHandle                  = VK_ERROR_INVALID_EXTERNAL_HANDLE,
+    eErrorFragmentation                          = VK_ERROR_FRAGMENTATION,
+    eErrorInvalidOpaqueCaptureAddress            = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,
+    eErrorSurfaceLostKhr                         = VK_ERROR_SURFACE_LOST_KHR,
+    eErrorNativeWindowInUseKhr                   = VK_ERROR_NATIVE_WINDOW_IN_USE_KHR,
+    eSuboptimalKhr                               = VK_SUBOPTIMAL_KHR,
+    eErrorOutOfDateKhr                           = VK_ERROR_OUT_OF_DATE_KHR,
+    eErrorIncompatibleDisplayKhr                 = VK_ERROR_INCOMPATIBLE_DISPLAY_KHR,
+    eErrorValidationFailedExt                    = VK_ERROR_VALIDATION_FAILED_EXT,
+    eErrorInvalidShaderNv                        = VK_ERROR_INVALID_SHADER_NV,
+    eErrorInvalidDrmFormatModifierPlaneLayoutExt = VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT,
+    eErrorNotPermittedExt                        = VK_ERROR_NOT_PERMITTED_EXT,
+    eErrorFullScreenExclusiveModeLostExt         = VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,
+    eThreadIdleKhr                               = VK_THREAD_IDLE_KHR,
+    eThreadDoneKhr                               = VK_THREAD_DONE_KHR,
+    eOperationDeferredKhr                        = VK_OPERATION_DEFERRED_KHR,
+    eOperationNotDeferredKhr                     = VK_OPERATION_NOT_DEFERRED_KHR,
+    ePipelineCompileRequiredExt                  = VK_PIPELINE_COMPILE_REQUIRED_EXT,
+    eErrorFragmentationExt                       = VK_ERROR_FRAGMENTATION_EXT,
+    eErrorInvalidDeviceAddressExt                = VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,
+    eErrorInvalidExternalHandleKhr               = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
+    eErrorInvalidOpaqueCaptureAddressKhr         = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR,
+    eErrorOutOfPoolMemoryKhr                     = VK_ERROR_OUT_OF_POOL_MEMORY_KHR,
+    eErrorPipelineCompileRequiredExt             = VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT
   };
 
   VKMA_INLINE std::string to_string( Result value )
   {
     switch ( value )
     {
-      case Result::eVkSuccess: return "VkSuccess";
-      case Result::eVkNotReady: return "VkNotReady";
-      case Result::eVkTimeout: return "VkTimeout";
-      case Result::eVkEventSet: return "VkEventSet";
-      case Result::eVkEventReset: return "VkEventReset";
-      case Result::eVkIncomplete: return "VkIncomplete";
-      case Result::eVkErrorOutOfHostMemory: return "VkErrorOutOfHostMemory";
-      case Result::eVkErrorOutOfDeviceMemory: return "VkErrorOutOfDeviceMemory";
-      case Result::eVkErrorInitializationFailed: return "VkErrorInitializationFailed";
-      case Result::eVkErrorDeviceLost: return "VkErrorDeviceLost";
-      case Result::eVkErrorMemoryMapFailed: return "VkErrorMemoryMapFailed";
-      case Result::eVkErrorLayerNotPresent: return "VkErrorLayerNotPresent";
-      case Result::eVkErrorExtensionNotPresent: return "VkErrorExtensionNotPresent";
-      case Result::eVkErrorFeatureNotPresent: return "VkErrorFeatureNotPresent";
-      case Result::eVkErrorIncompatibleDriver: return "VkErrorIncompatibleDriver";
-      case Result::eVkErrorTooManyObjects: return "VkErrorTooManyObjects";
-      case Result::eVkErrorFormatNotSupported: return "VkErrorFormatNotSupported";
-      case Result::eVkErrorFragmentedPool: return "VkErrorFragmentedPool";
-      case Result::eVkErrorUnknown: return "VkErrorUnknown";
-      case Result::eVkErrorOutOfPoolMemory: return "VkErrorOutOfPoolMemory";
-      case Result::eVkErrorInvalidExternalHandle: return "VkErrorInvalidExternalHandle";
-      case Result::eVkErrorFragmentation: return "VkErrorFragmentation";
-      case Result::eVkErrorInvalidOpaqueCaptureAddress: return "VkErrorInvalidOpaqueCaptureAddress";
-      case Result::eVkErrorSurfaceLostKhr: return "VkErrorSurfaceLostKhr";
-      case Result::eVkErrorNativeWindowInUseKhr: return "VkErrorNativeWindowInUseKhr";
-      case Result::eVkSuboptimalKhr: return "VkSuboptimalKhr";
-      case Result::eVkErrorOutOfDateKhr: return "VkErrorOutOfDateKhr";
-      case Result::eVkErrorIncompatibleDisplayKhr: return "VkErrorIncompatibleDisplayKhr";
-      case Result::eVkErrorValidationFailedExt: return "VkErrorValidationFailedExt";
-      case Result::eVkErrorInvalidShaderNv: return "VkErrorInvalidShaderNv";
-      case Result::eVkErrorInvalidDrmFormatModifierPlaneLayoutExt:
-        return "VkErrorInvalidDrmFormatModifierPlaneLayoutExt";
-      case Result::eVkErrorNotPermittedExt: return "VkErrorNotPermittedExt";
-      case Result::eVkErrorFullScreenExclusiveModeLostExt: return "VkErrorFullScreenExclusiveModeLostExt";
-      case Result::eVkThreadIdleKhr: return "VkThreadIdleKhr";
-      case Result::eVkThreadDoneKhr: return "VkThreadDoneKhr";
-      case Result::eVkOperationDeferredKhr: return "VkOperationDeferredKhr";
-      case Result::eVkOperationNotDeferredKhr: return "VkOperationNotDeferredKhr";
-      case Result::eVkPipelineCompileRequiredExt: return "VkPipelineCompileRequiredExt";
+      case Result::eSuccess: return "Success";
+      case Result::eNotReady: return "NotReady";
+      case Result::eTimeout: return "Timeout";
+      case Result::eEventSet: return "EventSet";
+      case Result::eEventReset: return "EventReset";
+      case Result::eIncomplete: return "Incomplete";
+      case Result::eErrorOutOfHostMemory: return "ErrorOutOfHostMemory";
+      case Result::eErrorOutOfDeviceMemory: return "ErrorOutOfDeviceMemory";
+      case Result::eErrorInitializationFailed: return "ErrorInitializationFailed";
+      case Result::eErrorDeviceLost: return "ErrorDeviceLost";
+      case Result::eErrorMemoryMapFailed: return "ErrorMemoryMapFailed";
+      case Result::eErrorLayerNotPresent: return "ErrorLayerNotPresent";
+      case Result::eErrorExtensionNotPresent: return "ErrorExtensionNotPresent";
+      case Result::eErrorFeatureNotPresent: return "ErrorFeatureNotPresent";
+      case Result::eErrorIncompatibleDriver: return "ErrorIncompatibleDriver";
+      case Result::eErrorTooManyObjects: return "ErrorTooManyObjects";
+      case Result::eErrorFormatNotSupported: return "ErrorFormatNotSupported";
+      case Result::eErrorFragmentedPool: return "ErrorFragmentedPool";
+      case Result::eErrorUnknown: return "ErrorUnknown";
+      case Result::eErrorOutOfPoolMemory: return "ErrorOutOfPoolMemory";
+      case Result::eErrorInvalidExternalHandle: return "ErrorInvalidExternalHandle";
+      case Result::eErrorFragmentation: return "ErrorFragmentation";
+      case Result::eErrorInvalidOpaqueCaptureAddress: return "ErrorInvalidOpaqueCaptureAddress";
+      case Result::eErrorSurfaceLostKhr: return "ErrorSurfaceLostKhr";
+      case Result::eErrorNativeWindowInUseKhr: return "ErrorNativeWindowInUseKhr";
+      case Result::eSuboptimalKhr: return "SuboptimalKhr";
+      case Result::eErrorOutOfDateKhr: return "ErrorOutOfDateKhr";
+      case Result::eErrorIncompatibleDisplayKhr: return "ErrorIncompatibleDisplayKhr";
+      case Result::eErrorValidationFailedExt: return "ErrorValidationFailedExt";
+      case Result::eErrorInvalidShaderNv: return "ErrorInvalidShaderNv";
+      case Result::eErrorInvalidDrmFormatModifierPlaneLayoutExt: return "ErrorInvalidDrmFormatModifierPlaneLayoutExt";
+      case Result::eErrorNotPermittedExt: return "ErrorNotPermittedExt";
+      case Result::eErrorFullScreenExclusiveModeLostExt: return "ErrorFullScreenExclusiveModeLostExt";
+      case Result::eThreadIdleKhr: return "ThreadIdleKhr";
+      case Result::eThreadDoneKhr: return "ThreadDoneKhr";
+      case Result::eOperationDeferredKhr: return "OperationDeferredKhr";
+      case Result::eOperationNotDeferredKhr: return "OperationNotDeferredKhr";
+      case Result::ePipelineCompileRequiredExt: return "PipelineCompileRequiredExt";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
@@ -2215,10 +2214,313 @@ namespace VKMA_NAMESPACE
     return std::error_condition( static_cast<int>( e ), errorCategory() );
   }
 
+  class OutOfHostMemoryError : public SystemError
+  {
+  public:
+    OutOfHostMemoryError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorOutOfHostMemory ), message )
+    {}
+    OutOfHostMemoryError( char const * message )
+      : SystemError( make_error_code( Result::eErrorOutOfHostMemory ), message )
+    {}
+  };
+
+  class OutOfDeviceMemoryError : public SystemError
+  {
+  public:
+    OutOfDeviceMemoryError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorOutOfDeviceMemory ), message )
+    {}
+    OutOfDeviceMemoryError( char const * message )
+      : SystemError( make_error_code( Result::eErrorOutOfDeviceMemory ), message )
+    {}
+  };
+
+  class InitializationFailedError : public SystemError
+  {
+  public:
+    InitializationFailedError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorInitializationFailed ), message )
+    {}
+    InitializationFailedError( char const * message )
+      : SystemError( make_error_code( Result::eErrorInitializationFailed ), message )
+    {}
+  };
+
+  class DeviceLostError : public SystemError
+  {
+  public:
+    DeviceLostError( std::string const & message ) : SystemError( make_error_code( Result::eErrorDeviceLost ), message )
+    {}
+    DeviceLostError( char const * message ) : SystemError( make_error_code( Result::eErrorDeviceLost ), message ) {}
+  };
+
+  class MemoryMapFailedError : public SystemError
+  {
+  public:
+    MemoryMapFailedError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorMemoryMapFailed ), message )
+    {}
+    MemoryMapFailedError( char const * message )
+      : SystemError( make_error_code( Result::eErrorMemoryMapFailed ), message )
+    {}
+  };
+
+  class LayerNotPresentError : public SystemError
+  {
+  public:
+    LayerNotPresentError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorLayerNotPresent ), message )
+    {}
+    LayerNotPresentError( char const * message )
+      : SystemError( make_error_code( Result::eErrorLayerNotPresent ), message )
+    {}
+  };
+
+  class ExtensionNotPresentError : public SystemError
+  {
+  public:
+    ExtensionNotPresentError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorExtensionNotPresent ), message )
+    {}
+    ExtensionNotPresentError( char const * message )
+      : SystemError( make_error_code( Result::eErrorExtensionNotPresent ), message )
+    {}
+  };
+
+  class FeatureNotPresentError : public SystemError
+  {
+  public:
+    FeatureNotPresentError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorFeatureNotPresent ), message )
+    {}
+    FeatureNotPresentError( char const * message )
+      : SystemError( make_error_code( Result::eErrorFeatureNotPresent ), message )
+    {}
+  };
+
+  class IncompatibleDriverError : public SystemError
+  {
+  public:
+    IncompatibleDriverError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorIncompatibleDriver ), message )
+    {}
+    IncompatibleDriverError( char const * message )
+      : SystemError( make_error_code( Result::eErrorIncompatibleDriver ), message )
+    {}
+  };
+
+  class TooManyObjectsError : public SystemError
+  {
+  public:
+    TooManyObjectsError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorTooManyObjects ), message )
+    {}
+    TooManyObjectsError( char const * message )
+      : SystemError( make_error_code( Result::eErrorTooManyObjects ), message )
+    {}
+  };
+
+  class FormatNotSupportedError : public SystemError
+  {
+  public:
+    FormatNotSupportedError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorFormatNotSupported ), message )
+    {}
+    FormatNotSupportedError( char const * message )
+      : SystemError( make_error_code( Result::eErrorFormatNotSupported ), message )
+    {}
+  };
+
+  class FragmentedPoolError : public SystemError
+  {
+  public:
+    FragmentedPoolError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorFragmentedPool ), message )
+    {}
+    FragmentedPoolError( char const * message )
+      : SystemError( make_error_code( Result::eErrorFragmentedPool ), message )
+    {}
+  };
+
+  class UnknownError : public SystemError
+  {
+  public:
+    UnknownError( std::string const & message ) : SystemError( make_error_code( Result::eErrorUnknown ), message ) {}
+    UnknownError( char const * message ) : SystemError( make_error_code( Result::eErrorUnknown ), message ) {}
+  };
+
+  class OutOfPoolMemoryError : public SystemError
+  {
+  public:
+    OutOfPoolMemoryError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorOutOfPoolMemory ), message )
+    {}
+    OutOfPoolMemoryError( char const * message )
+      : SystemError( make_error_code( Result::eErrorOutOfPoolMemory ), message )
+    {}
+  };
+
+  class InvalidExternalHandleError : public SystemError
+  {
+  public:
+    InvalidExternalHandleError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorInvalidExternalHandle ), message )
+    {}
+    InvalidExternalHandleError( char const * message )
+      : SystemError( make_error_code( Result::eErrorInvalidExternalHandle ), message )
+    {}
+  };
+
+  class FragmentationError : public SystemError
+  {
+  public:
+    FragmentationError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorFragmentation ), message )
+    {}
+    FragmentationError( char const * message ) : SystemError( make_error_code( Result::eErrorFragmentation ), message )
+    {}
+  };
+
+  class InvalidOpaqueCaptureAddressError : public SystemError
+  {
+  public:
+    InvalidOpaqueCaptureAddressError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorInvalidOpaqueCaptureAddress ), message )
+    {}
+    InvalidOpaqueCaptureAddressError( char const * message )
+      : SystemError( make_error_code( Result::eErrorInvalidOpaqueCaptureAddress ), message )
+    {}
+  };
+
+  class SurfaceLostKhrError : public SystemError
+  {
+  public:
+    SurfaceLostKhrError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorSurfaceLostKhr ), message )
+    {}
+    SurfaceLostKhrError( char const * message )
+      : SystemError( make_error_code( Result::eErrorSurfaceLostKhr ), message )
+    {}
+  };
+
+  class NativeWindowInUseKhrError : public SystemError
+  {
+  public:
+    NativeWindowInUseKhrError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorNativeWindowInUseKhr ), message )
+    {}
+    NativeWindowInUseKhrError( char const * message )
+      : SystemError( make_error_code( Result::eErrorNativeWindowInUseKhr ), message )
+    {}
+  };
+
+  class OutOfDateKhrError : public SystemError
+  {
+  public:
+    OutOfDateKhrError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorOutOfDateKhr ), message )
+    {}
+    OutOfDateKhrError( char const * message ) : SystemError( make_error_code( Result::eErrorOutOfDateKhr ), message ) {}
+  };
+
+  class IncompatibleDisplayKhrError : public SystemError
+  {
+  public:
+    IncompatibleDisplayKhrError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorIncompatibleDisplayKhr ), message )
+    {}
+    IncompatibleDisplayKhrError( char const * message )
+      : SystemError( make_error_code( Result::eErrorIncompatibleDisplayKhr ), message )
+    {}
+  };
+
+  class ValidationFailedExtError : public SystemError
+  {
+  public:
+    ValidationFailedExtError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorValidationFailedExt ), message )
+    {}
+    ValidationFailedExtError( char const * message )
+      : SystemError( make_error_code( Result::eErrorValidationFailedExt ), message )
+    {}
+  };
+
+  class InvalidShaderNvError : public SystemError
+  {
+  public:
+    InvalidShaderNvError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorInvalidShaderNv ), message )
+    {}
+    InvalidShaderNvError( char const * message )
+      : SystemError( make_error_code( Result::eErrorInvalidShaderNv ), message )
+    {}
+  };
+
+  class InvalidDrmFormatModifierPlaneLayoutExtError : public SystemError
+  {
+  public:
+    InvalidDrmFormatModifierPlaneLayoutExtError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorInvalidDrmFormatModifierPlaneLayoutExt ), message )
+    {}
+    InvalidDrmFormatModifierPlaneLayoutExtError( char const * message )
+      : SystemError( make_error_code( Result::eErrorInvalidDrmFormatModifierPlaneLayoutExt ), message )
+    {}
+  };
+
+  class NotPermittedExtError : public SystemError
+  {
+  public:
+    NotPermittedExtError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorNotPermittedExt ), message )
+    {}
+    NotPermittedExtError( char const * message )
+      : SystemError( make_error_code( Result::eErrorNotPermittedExt ), message )
+    {}
+  };
+
+  class FullScreenExclusiveModeLostExtError : public SystemError
+  {
+  public:
+    FullScreenExclusiveModeLostExtError( std::string const & message )
+      : SystemError( make_error_code( Result::eErrorFullScreenExclusiveModeLostExt ), message )
+    {}
+    FullScreenExclusiveModeLostExtError( char const * message )
+      : SystemError( make_error_code( Result::eErrorFullScreenExclusiveModeLostExt ), message )
+    {}
+  };
+
   [[noreturn]] static void throwResultException( Result result, char const * message )
   {
     switch ( result )
     {
+      case Result::eErrorOutOfHostMemory: throw OutOfHostMemoryError( message );
+      case Result::eErrorOutOfDeviceMemory: throw OutOfDeviceMemoryError( message );
+      case Result::eErrorInitializationFailed: throw InitializationFailedError( message );
+      case Result::eErrorDeviceLost: throw DeviceLostError( message );
+      case Result::eErrorMemoryMapFailed: throw MemoryMapFailedError( message );
+      case Result::eErrorLayerNotPresent: throw LayerNotPresentError( message );
+      case Result::eErrorExtensionNotPresent: throw ExtensionNotPresentError( message );
+      case Result::eErrorFeatureNotPresent: throw FeatureNotPresentError( message );
+      case Result::eErrorIncompatibleDriver: throw IncompatibleDriverError( message );
+      case Result::eErrorTooManyObjects: throw TooManyObjectsError( message );
+      case Result::eErrorFormatNotSupported: throw FormatNotSupportedError( message );
+      case Result::eErrorFragmentedPool: throw FragmentedPoolError( message );
+      case Result::eErrorUnknown: throw UnknownError( message );
+      case Result::eErrorOutOfPoolMemory: throw OutOfPoolMemoryError( message );
+      case Result::eErrorInvalidExternalHandle: throw InvalidExternalHandleError( message );
+      case Result::eErrorFragmentation: throw FragmentationError( message );
+      case Result::eErrorInvalidOpaqueCaptureAddress: throw InvalidOpaqueCaptureAddressError( message );
+      case Result::eErrorSurfaceLostKhr: throw SurfaceLostKhrError( message );
+      case Result::eErrorNativeWindowInUseKhr: throw NativeWindowInUseKhrError( message );
+      case Result::eErrorOutOfDateKhr: throw OutOfDateKhrError( message );
+      case Result::eErrorIncompatibleDisplayKhr: throw IncompatibleDisplayKhrError( message );
+      case Result::eErrorValidationFailedExt: throw ValidationFailedExtError( message );
+      case Result::eErrorInvalidShaderNv: throw InvalidShaderNvError( message );
+      case Result::eErrorInvalidDrmFormatModifierPlaneLayoutExt:
+        throw InvalidDrmFormatModifierPlaneLayoutExtError( message );
+      case Result::eErrorNotPermittedExt: throw NotPermittedExtError( message );
+      case Result::eErrorFullScreenExclusiveModeLostExt: throw FullScreenExclusiveModeLostExtError( message );
       default: throw SystemError( make_error_code( result ) );
     }
   }
@@ -4784,8 +5086,7 @@ namespace VKMA_NAMESPACE
 
     void getPoolName( Pool pool, const char ** ppName ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <>
-    void getPoolName( Pool pool, const char & pName ) const VKMA_NOEXCEPT;
+    VKMA_NODISCARD const char * getPoolName( Pool pool ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
     void getPoolStats( Pool pool, PoolStats * pPoolStats ) const VKMA_NOEXCEPT;
@@ -5644,10 +5945,11 @@ namespace VKMA_NAMESPACE
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <>
-  VKMA_INLINE void Allocator::getPoolName( Pool pool, const char & pName ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE const char * Allocator::getPoolName( Pool pool ) const VKMA_NOEXCEPT
   {
+    const char * pName;
     vkmaGetPoolName( m_allocator, static_cast<VkmaPool>( pool ), &pName );
+    return pName;
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
