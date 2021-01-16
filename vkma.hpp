@@ -5,123 +5,123 @@
 // [fork](https://github.com/Cvelth/vkma_vulkan_hpp_fork).
 
 #ifndef VKMA
-#  define VKMA
+#define VKMA
 
-#  if defined( _MSVC_LANG )
-#    define VKMA_CPLUSPLUS _MSVC_LANG
-#  else
-#    define VKMA_CPLUSPLUS __cplusplus
+#if defined( _MSVC_LANG )
+#  define VKMA_CPLUSPLUS _MSVC_LANG
+#else
+#  define VKMA_CPLUSPLUS __cplusplus
+#endif
+
+#if 201703L < VKMA_CPLUSPLUS
+#  define VKMA_CPP_VERSION 20
+#elif 201402L < VKMA_CPLUSPLUS
+#  define VKMA_CPP_VERSION 17
+#elif 201103L < VKMA_CPLUSPLUS
+#  define VKMA_CPP_VERSION 14
+#elif 199711L < VKMA_CPLUSPLUS
+#  define VKMA_CPP_VERSION 11
+#else
+#  error "vkma.hpp needs at least c++ standard version 11"
+#endif
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <functional>
+#include <initializer_list>
+#include <sstream>
+#include <string>
+#include <system_error>
+#include <tuple>
+#include <type_traits>
+#include <vk_mem_alloc.h>
+
+#if 17 <= VKMA_CPP_VERSION
+#  include <string_view>
+#endif
+
+#if defined( VKMA_DISABLE_ENHANCED_MODE )
+#  if !defined( VKMA_NO_SMART_HANDLE )
+#    define VKMA_NO_SMART_HANDLE
 #  endif
+#else
+#  include <memory>
+#  include <vector>
+#endif
 
-#  if 201703L < VKMA_CPLUSPLUS
-#    define VKMA_CPP_VERSION 20
-#  elif 201402L < VKMA_CPLUSPLUS
-#    define VKMA_CPP_VERSION 17
-#  elif 201103L < VKMA_CPLUSPLUS
-#    define VKMA_CPP_VERSION 14
-#  elif 199711L < VKMA_CPLUSPLUS
-#    define VKMA_CPP_VERSION 11
-#  else
-#    error "vkma.hpp needs at least c++ standard version 11"
-#  endif
+#if !defined( VKMA_ASSERT )
+#  include <cassert>
+#  define VKMA_ASSERT assert
+#endif
 
-#  include <algorithm>
-#  include <array>
-#  include <cstddef>
-#  include <cstdint>
-#  include <cstring>
-#  include <functional>
-#  include <initializer_list>
-#  include <sstream>
-#  include <string>
-#  include <system_error>
-#  include <tuple>
-#  include <type_traits>
-#  include <vk_mem_alloc.h>
+#if !defined( VKMA_ASSERT_ON_RESULT )
+#  define VKMA_ASSERT_ON_RESULT VKMA_ASSERT
+#endif
 
-#  if 17 <= VKMA_CPP_VERSION
-#    include <string_view>
-#  endif
+#if !defined( VKMA_ENABLE_DYNAMIC_LOADER_TOOL )
+#  define VKMA_ENABLE_DYNAMIC_LOADER_TOOL 1
+#endif
 
-#  if defined( VKMA_DISABLE_ENHANCED_MODE )
-#    if !defined( VKMA_NO_SMART_HANDLE )
-#      define VKMA_NO_SMART_HANDLE
-#    endif
-#  else
-#    include <memory>
-#    include <vector>
-#  endif
-
-#  if !defined( VKMA_ASSERT )
-#    include <cassert>
-#    define VKMA_ASSERT assert
-#  endif
-
-#  if !defined( VKMA_ASSERT_ON_RESULT )
-#    define VKMA_ASSERT_ON_RESULT VKMA_ASSERT
-#  endif
-
-#  if !defined( VKMA_ENABLE_DYNAMIC_LOADER_TOOL )
-#    define VKMA_ENABLE_DYNAMIC_LOADER_TOOL 1
-#  endif
-
-#  if VKMA_ENABLE_DYNAMIC_LOADER_TOOL == 1
-#    if defined( __linux__ ) || defined( __APPLE__ )
-#      include <dlfcn.h>
-#    elif defined( _WIN32 )
+#if VKMA_ENABLE_DYNAMIC_LOADER_TOOL == 1
+#  if defined( __linux__ ) || defined( __APPLE__ )
+#    include <dlfcn.h>
+#  elif defined( _WIN32 )
 typedef struct HINSTANCE__ * HINSTANCE;
-#      if defined( _WIN64 )
+#    if defined( _WIN64 )
 typedef int64_t( __stdcall * FARPROC )();
-#      else
+#    else
 typedef int( __stdcall * FARPROC )();
-#      endif
+#    endif
 extern "C" __declspec( dllimport ) HINSTANCE __stdcall LoadLibraryA( char const * lpLibFileName );
 extern "C" __declspec( dllimport ) int __stdcall FreeLibrary( HINSTANCE hLibModule );
 extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE hModule, const char * lpProcName );
-#    endif
 #  endif
+#endif
 
-#  if !defined( __has_include )
-#    define __has_include( x ) false
-#  endif
+#if !defined( __has_include )
+#  define __has_include( x ) false
+#endif
 
-#  if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( VKMA_NO_SPACESHIP_OPERATOR )
-#    define VKMA_HAS_SPACESHIP_OPERATOR
-#  endif
-#  if defined( VKMA_HAS_SPACESHIP_OPERATOR )
-#    include <compare>
-#  endif
+#if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( VKMA_NO_SPACESHIP_OPERATOR )
+#  define VKMA_HAS_SPACESHIP_OPERATOR
+#endif
+#if defined( VKMA_HAS_SPACESHIP_OPERATOR )
+#  include <compare>
+#endif
 
 // External bindings file:
-#  ifndef VKMA_BINDINGS_HPP
-#    define VKMA_BINDINGS_HPP
+#ifndef VKMA_BINDINGS_HPP
+#  define VKMA_BINDINGS_HPP
 
-#    ifdef VKMA_IMPLEMENTATION
-#      define VMA_IMPLEMENTATION
-#    endif
+#  ifdef VKMA_IMPLEMENTATION
+#    define VMA_IMPLEMENTATION
+#  endif
 
-#    include <vk_mem_alloc.h>
+#  include <vk_mem_alloc.h>
 
-#    ifdef VMA_RECORDING_ENABLED
-#      define VKMA_RECORDING_ENABLED VMA_RECORDING_ENABLED
-#    endif
-#    ifdef VMA_VULKAN_VERSION
-#      define VKMA_VULKAN_VERSION VMA_VULKAN_VERSION
-#    endif
-#    ifdef VMA_DEDICATED_ALLOCATION
-#      define VKMA_DEDICATED_ALLOCATION VMA_DEDICATED_ALLOCATION
-#    endif
-#    ifdef VMA_BIND_MEMORY2
-#      define VKMA_BIND_MEMORY2 VMA_BIND_MEMORY2
-#    endif
-#    ifdef VMA_MEMORY_BUDGET
-#      define VKMA_MEMORY_BUDGET VMA_MEMORY_BUDGET
-#    endif
-#    ifdef VMA_STATS_STRING_ENABLED
-#      define VKMA_STATS_STRING_ENABLED VMA_STATS_STRING_ENABLED
-#    endif
+#  ifdef VMA_RECORDING_ENABLED
+#    define VKMA_RECORDING_ENABLED VMA_RECORDING_ENABLED
+#  endif
+#  ifdef VMA_VULKAN_VERSION
+#    define VKMA_VULKAN_VERSION VMA_VULKAN_VERSION
+#  endif
+#  ifdef VMA_DEDICATED_ALLOCATION
+#    define VKMA_DEDICATED_ALLOCATION VMA_DEDICATED_ALLOCATION
+#  endif
+#  ifdef VMA_BIND_MEMORY2
+#    define VKMA_BIND_MEMORY2 VMA_BIND_MEMORY2
+#  endif
+#  ifdef VMA_MEMORY_BUDGET
+#    define VKMA_MEMORY_BUDGET VMA_MEMORY_BUDGET
+#  endif
+#  ifdef VMA_STATS_STRING_ENABLED
+#    define VKMA_STATS_STRING_ENABLED VMA_STATS_STRING_ENABLED
+#  endif
 
-#    define VKMA_NULL_HANDLE VK_NULL_HANDLE
+#  define VKMA_NULL_HANDLE VK_NULL_HANDLE
 
 VK_DEFINE_HANDLE( VkmaAllocator )                                // parent: none
 VK_DEFINE_HANDLE( VkmaBuffer )                                   // parent: VkmaAllocator
@@ -625,15 +625,13 @@ inline void vkmaGetImageAllocation( VkmaImage image, VkmaAllocation * pAllocatio
 // VkBool32 *pAllocationsChanged, const VkmaDefragmentationInfo *pDefragmentationInfo, VkmaDefragmentationStats
 // *pDefragmentationStats)
 
-#  endif  // VKMA_BINDINGS_HPP
+#endif  // VKMA_BINDINGS_HPP
 // The end of an external bindings file.
 
 // 32-bit vulkan is not typesafe for handles, so don't allow copy constructors on this platform by default.
 // To enable this feature on 32-bit platforms please define VKMA_TYPESAFE_CONVERSION
-
-#  if !defined( VKMA_TYPESAFE_CONVERSION )
-#    define VKMA_TYPESAFE_CONVERSION
-#  endif
+#if !defined( VKMA_TYPESAFE_CONVERSION )
+#  define VKMA_TYPESAFE_CONVERSION
 #endif
 
 // <tuple> includes <sys/sysmacros.h> through some other header
