@@ -1627,8 +1627,6 @@ namespace VKMA_NAMESPACE
   public:
     ObjectDestroy() = default;
 
-    ObjectDestroy() VKMA_NOEXCEPT {}
-
   protected:
     template <typename T>
     void destroy( T t ) VKMA_NOEXCEPT
