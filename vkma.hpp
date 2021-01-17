@@ -5922,7 +5922,6 @@ namespace VKMA_NAMESPACE
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <>
   VKMA_INLINE void Allocator::freeMemoryPages( size_t             allocationCount,
                                                const Allocation & allocations ) const VKMA_NOEXCEPT
   {
@@ -6133,7 +6132,6 @@ namespace VKMA_NAMESPACE
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  template <>
   VKMA_INLINE void Allocator::setPoolName( Pool pool, const char & name ) const VKMA_NOEXCEPT
   {
     vkmaSetPoolName( m_allocator, static_cast<VkmaPool>( pool ), &name );
