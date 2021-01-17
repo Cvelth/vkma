@@ -173,7 +173,6 @@ using VkmaBudget               = VmaBudget;
 using VkmaDefragmentationStats = VmaDefragmentationStats;
 using VkmaPoolStats            = VmaPoolStats;
 using VkmaStatInfo             = VmaStatInfo;
-using VkmaVulkanFunctions      = VmaVulkanFunctions;
 
 typedef struct VkmaAllocationCreateInfo
 {
@@ -207,6 +206,37 @@ typedef struct VkmaRecordSettings
 } VkmaRecordSettings;
 static_assert( sizeof( VkmaRecordSettings ) == sizeof( VmaRecordSettings ), "struct and wrapper have different size!" );
 static_assert( std::is_standard_layout<VkmaRecordSettings>::value, "struct wrapper is not a standard layout!" );
+
+typedef struct VkmaVulkanFunctions
+{
+  PFN_vkGetPhysicalDeviceProperties       vkGetPhysicalDeviceProperties;
+  PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
+  PFN_vkAllocateMemory                    vkAllocateMemory;
+  PFN_vkFreeMemory                        vkFreeMemory;
+  PFN_vkMapMemory                         vkMapMemory;
+  PFN_vkUnmapMemory                       vkUnmapMemory;
+  PFN_vkFlushMappedMemoryRanges           vkFlushMappedMemoryRanges;
+  PFN_vkInvalidateMappedMemoryRanges      vkInvalidateMappedMemoryRanges;
+  PFN_vkBindBufferMemory                  vkBindBufferMemory;
+  PFN_vkBindImageMemory                   vkBindImageMemory;
+  PFN_vkGetBufferMemoryRequirements       vkGetBufferMemoryRequirements;
+  PFN_vkGetImageMemoryRequirements        vkGetImageMemoryRequirements;
+  PFN_vkCreateBuffer                      vkCreateBuffer;
+  PFN_vkDestroyBuffer                     vkDestroyBuffer;
+  PFN_vkCreateImage                       vkCreateImage;
+  PFN_vkDestroyImage                      vkDestroyImage;
+  PFN_vkCmdCopyBuffer                     vkCmdCopyBuffer;
+
+  PFN_vkGetBufferMemoryRequirements2KHR vkGetBufferMemoryRequirements2KHR;
+  PFN_vkGetImageMemoryRequirements2KHR  vkGetImageMemoryRequirements2KHR;
+
+  PFN_vkBindBufferMemory2KHR vkBindBufferMemory2KHR;
+  PFN_vkBindImageMemory2KHR  vkBindImageMemory2KHR;
+
+  PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR;
+} static_assert( sizeof( VkmaVulkanFunctions ) >= sizeof( VmaVulkanFunctions ),
+                 "struct and wrapper have different size!" );
+static_assert( std::is_standard_layout<VkmaVulkanFunctions>::value, "struct wrapper is not a standard layout!" );
 
 typedef struct VkmaAllocatorCreateInfo
 {
