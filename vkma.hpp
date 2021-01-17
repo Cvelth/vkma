@@ -355,9 +355,9 @@ inline void vkmaBuildStatsString( VkmaAllocator allocator, VkBool32 detailedMap,
 {
   vmaBuildStatsString( reinterpret_cast<VmaAllocator>( allocator ), ppStatsString, detailedMap );
 }
-inline void vkmaFreeStatsString( VkmaAllocator allocator, char * pStatsString )
+inline void vkmaFreeStatsString( VkmaAllocator allocator, const char * pStatsString )
 {
-  vmaFreeStatsString( reinterpret_cast<VmaAllocator>( allocator ), pStatsString );
+  vmaFreeStatsString( reinterpret_cast<VmaAllocator>( allocator ), const_cast<char *>( pStatsString ) );
 }
 
 inline VkmaResult vkmaFindMemoryTypeIndex( VkmaAllocator                    allocator,
@@ -5229,14 +5229,14 @@ namespace VKMA_NAMESPACE
     void free( size_t allocationCount, const Allocation & allocations ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-    void freeStatsString( char * pStatsString ) const VKMA_NOEXCEPT;
+    void freeStatsString( const char * pStatsString ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD char freeStatsString() const VKMA_NOEXCEPT;
+    void freeStatsString( const char & statsString ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-    void free( char * pStatsString ) const VKMA_NOEXCEPT;
+    void free( const char * pStatsString ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD char free() const VKMA_NOEXCEPT;
+    void free( const char & statsString ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
     void getAllocationInfo( Allocation allocation, AllocationInfo * pAllocationInfo ) const VKMA_NOEXCEPT;
@@ -6080,31 +6080,27 @@ namespace VKMA_NAMESPACE
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-  VKMA_INLINE void Allocator::freeStatsString( char * pStatsString ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::freeStatsString( const char * pStatsString ) const VKMA_NOEXCEPT
   {
     vkmaFreeStatsString( m_allocator, pStatsString );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD VKMA_INLINE char Allocator::freeStatsString() const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::freeStatsString( const char & statsString ) const VKMA_NOEXCEPT
   {
-    char statsString;
     vkmaFreeStatsString( m_allocator, &statsString );
-    return statsString;
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-  VKMA_INLINE void Allocator::free( char * pStatsString ) const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::free( const char * pStatsString ) const VKMA_NOEXCEPT
   {
     vkmaFreeStatsString( m_allocator, pStatsString );
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD VKMA_INLINE char Allocator::free() const VKMA_NOEXCEPT
+  VKMA_INLINE void Allocator::free( const char & statsString ) const VKMA_NOEXCEPT
   {
-    char statsString;
     vkmaFreeStatsString( m_allocator, &statsString );
-    return statsString;
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
