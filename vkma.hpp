@@ -943,11 +943,21 @@ namespace VKMA_NAMESPACE
       , m_ptr( nullptr )
     {}
 
+    ArrayProxyNoTemporaries( T & value ) VKMA_NOEXCEPT
+      : m_count( 1 )
+      , m_ptr( &value )
+    {}
+
+    ArrayProxyNoTemporaries( T && value ) = delete;
+
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( typename std::remove_const<T>::type & value ) VKMA_NOEXCEPT
       : m_count( 1 )
       , m_ptr( &value )
     {}
+
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( typename std::remove_const<T>::type && value ) = delete;
 
     ArrayProxyNoTemporaries( uint32_t count, T * ptr ) VKMA_NOEXCEPT
       : m_count( count )
@@ -965,16 +975,23 @@ namespace VKMA_NAMESPACE
       , m_ptr( list.begin() )
     {}
 
+    ArrayProxyNoTemporaries( std::initializer_list<T> const && list ) = delete;
+
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const & list ) VKMA_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
 
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const && list ) = delete;
+
     ArrayProxyNoTemporaries( std::initializer_list<T> & list ) VKMA_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
+
+    ArrayProxyNoTemporaries( std::initializer_list<T> && list ) = delete;
 
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> & list ) VKMA_NOEXCEPT
@@ -982,8 +999,8 @@ namespace VKMA_NAMESPACE
       , m_ptr( list.begin() )
     {}
 
-    ArrayProxyNoTemporaries( std::initializer_list<T> const && list ) VKMA_NOEXCEPT = delete;
-    ArrayProxyNoTemporaries( std::initializer_list<T> && list ) VKMA_NOEXCEPT       = delete;
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> && list ) = delete;
 
     template <size_t N>
     ArrayProxyNoTemporaries( std::array<T, N> const & data ) VKMA_NOEXCEPT
@@ -991,11 +1008,17 @@ namespace VKMA_NAMESPACE
       , m_ptr( data.data() )
     {}
 
+    template <size_t N>
+    ArrayProxyNoTemporaries( std::array<T, N> const && data ) = delete;
+
     template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const & data ) VKMA_NOEXCEPT
       : m_count( N )
       , m_ptr( data.data() )
     {}
+
+    template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const && data ) = delete;
 
     template <size_t N>
     ArrayProxyNoTemporaries( std::array<T, N> & data ) VKMA_NOEXCEPT
@@ -1003,22 +1026,26 @@ namespace VKMA_NAMESPACE
       , m_ptr( data.data() )
     {}
 
+    template <size_t N>
+    ArrayProxyNoTemporaries( std::array<T, N> && data ) = delete;
+
     template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> & data ) VKMA_NOEXCEPT
       : m_count( N )
       , m_ptr( data.data() )
     {}
 
-    template <size_t N>
-    ArrayProxyNoTemporaries( std::array<T, N> const && data ) VKMA_NOEXCEPT = delete;
-    template <size_t N>
-    ArrayProxyNoTemporaries( std::array<T, N> && data ) VKMA_NOEXCEPT = delete;
+    template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
     ArrayProxyNoTemporaries( std::vector<T, Allocator> const & data ) VKMA_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
+
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
+    ArrayProxyNoTemporaries( std::vector<T, Allocator> const && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
@@ -1028,11 +1055,19 @@ namespace VKMA_NAMESPACE
       , m_ptr( data.data() )
     {}
 
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
+              typename B      = T,
+              typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> const && data ) = delete;
+
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
     ArrayProxyNoTemporaries( std::vector<T, Allocator> & data ) VKMA_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
+
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
+    ArrayProxyNoTemporaries( std::vector<T, Allocator> && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
@@ -1042,8 +1077,10 @@ namespace VKMA_NAMESPACE
       , m_ptr( data.data() )
     {}
 
-    ArrayProxyNoTemporaries( std::vector<T> const && data ) VKMA_NOEXCEPT = delete;
-    ArrayProxyNoTemporaries( std::vector<T> && data ) VKMA_NOEXCEPT       = delete;
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
+              typename B      = T,
+              typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> && data ) = delete;
 
     const T * begin() const VKMA_NOEXCEPT
     {
@@ -4867,6 +4904,40 @@ namespace VKMA_NAMESPACE
     static VKMA_CONST_OR_CONSTEXPR bool value = true;
   };
 
+#ifndef VKMA_NO_SMART_HANDLE
+  class Allocator;
+  class UniqueHandleTraits<Allocation>
+  {
+  public:
+    using deleter = ObjectFree<Allocator>;
+  };
+  using UniqueAllocation = UniqueHandle<Allocation>;
+  class UniqueHandleTraits<Buffer>
+  {
+  public:
+    using deleter = ObjectDestroy<Allocator>;
+  };
+  using UniqueBuffer = UniqueHandle<Buffer>;
+  class UniqueHandleTraits<DefragmentationContext>
+  {
+  public:
+    using deleter = ObjectDestroy<Allocator>;
+  };
+  using UniqueDefragmentationContext = UniqueHandle<DefragmentationContext>;
+  class UniqueHandleTraits<Image>
+  {
+  public:
+    using deleter = ObjectDestroy<Allocator>;
+  };
+  using UniqueImage = UniqueHandle<Image>;
+  class UniqueHandleTraits<Pool>
+  {
+  public:
+    using deleter = ObjectDestroy<Allocator>;
+  };
+  using UniquePool = UniqueHandle<Pool>;
+#endif /*VKMA_NO_SMART_HANDLE*/
+
   class Allocator
   {
   public:
@@ -5085,6 +5156,8 @@ namespace VKMA_NAMESPACE
 
     void destroyBuffer( Buffer buffer ) const VKMA_NOEXCEPT;
 
+    void destroy( Buffer buffer ) const VKMA_NOEXCEPT;
+
 #ifdef VKMA_DISABLE_ENHANCED_MODE
     VKMA_NODISCARD Result destroyDefragmentationContext( DefragmentationContext context ) const VKMA_NOEXCEPT;
 #else
@@ -5092,9 +5165,20 @@ namespace VKMA_NAMESPACE
       destroyDefragmentationContext( DefragmentationContext context ) const;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+    VKMA_NODISCARD Result destroy( DefragmentationContext context ) const VKMA_NOEXCEPT;
+#else
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type
+      destroy( DefragmentationContext context ) const;
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
     void destroyImage( Image image ) const VKMA_NOEXCEPT;
 
+    void destroy( Image image ) const VKMA_NOEXCEPT;
+
     void destroyPool( Pool pool ) const VKMA_NOEXCEPT;
+
+    void destroy( Pool pool ) const VKMA_NOEXCEPT;
 
     VKMA_NODISCARD Result findMemoryTypeIndex( uint32_t                     memoryTypeBits,
                                                const AllocationCreateInfo * pAllocationCreateInfo,
@@ -5133,14 +5217,26 @@ namespace VKMA_NAMESPACE
 
     void freeMemory( const Allocation allocation ) const VKMA_NOEXCEPT;
 
+    void free( const Allocation allocation ) const VKMA_NOEXCEPT;
+
     void freeMemoryPages( size_t allocationCount, const Allocation * pAllocations ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
     void freeMemoryPages( size_t allocationCount, const Allocation & allocations ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+    void free( size_t allocationCount, const Allocation * pAllocations ) const VKMA_NOEXCEPT;
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+    void free( size_t allocationCount, const Allocation & allocations ) const VKMA_NOEXCEPT;
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
     void freeStatsString( char * pStatsString ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
     VKMA_NODISCARD char freeStatsString() const VKMA_NOEXCEPT;
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
+    void free( char * pStatsString ) const VKMA_NOEXCEPT;
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+    VKMA_NODISCARD char free() const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
     void getAllocationInfo( Allocation allocation, AllocationInfo * pAllocationInfo ) const VKMA_NOEXCEPT;
@@ -5243,6 +5339,15 @@ namespace VKMA_NAMESPACE
   {
     static VKMA_CONST_OR_CONSTEXPR bool value = true;
   };
+
+#ifndef VKMA_NO_SMART_HANDLE
+  class UniqueHandleTraits<Allocator>
+  {
+  public:
+    using deleter = ObjectDestroy<NoParent>;
+  };
+  using UniqueAllocator = UniqueHandle<Allocator>;
+#endif /*VKMA_NO_SMART_HANDLE*/
 
   VKMA_NODISCARD Result createAllocator( const AllocatorCreateInfo * pCreateInfo,
                                          Allocator *                 pAllocator ) VKMA_NOEXCEPT;
@@ -5782,6 +5887,11 @@ namespace VKMA_NAMESPACE
     vkmaDestroyBuffer( m_allocator, static_cast<VkmaBuffer>( buffer ) );
   }
 
+  VKMA_INLINE void Allocator::destroy( Buffer buffer ) const VKMA_NOEXCEPT
+  {
+    vkmaDestroyBuffer( m_allocator, static_cast<VkmaBuffer>( buffer ) );
+  }
+
 #ifdef VKMA_DISABLE_ENHANCED_MODE
   VKMA_NODISCARD VKMA_INLINE Result
     Allocator::destroyDefragmentationContext( DefragmentationContext context ) const VKMA_NOEXCEPT
@@ -5799,12 +5909,38 @@ namespace VKMA_NAMESPACE
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_NODISCARD VKMA_INLINE Result Allocator::destroy( DefragmentationContext context ) const VKMA_NOEXCEPT
+  {
+    return static_cast<Result>(
+      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+  }
+#else
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type
+    Allocator::destroy( DefragmentationContext context ) const
+  {
+    Result result = static_cast<Result>(
+      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+    return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::destroy" );
+  }
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
   VKMA_INLINE void Allocator::destroyImage( Image image ) const VKMA_NOEXCEPT
   {
     vkmaDestroyImage( m_allocator, static_cast<VkmaImage>( image ) );
   }
 
+  VKMA_INLINE void Allocator::destroy( Image image ) const VKMA_NOEXCEPT
+  {
+    vkmaDestroyImage( m_allocator, static_cast<VkmaImage>( image ) );
+  }
+
   VKMA_INLINE void Allocator::destroyPool( Pool pool ) const VKMA_NOEXCEPT
+  {
+    vkmaDestroyPool( m_allocator, static_cast<VkmaPool>( pool ) );
+  }
+
+  VKMA_INLINE void Allocator::destroy( Pool pool ) const VKMA_NOEXCEPT
   {
     vkmaDestroyPool( m_allocator, static_cast<VkmaPool>( pool ) );
   }
@@ -5913,6 +6049,11 @@ namespace VKMA_NAMESPACE
     vkmaFreeMemory( m_allocator, static_cast<VkmaAllocation>( allocation ) );
   }
 
+  VKMA_INLINE void Allocator::free( const Allocation allocation ) const VKMA_NOEXCEPT
+  {
+    vkmaFreeMemory( m_allocator, static_cast<VkmaAllocation>( allocation ) );
+  }
+
   VKMA_INLINE void Allocator::freeMemoryPages( size_t             allocationCount,
                                                const Allocation * pAllocations ) const VKMA_NOEXCEPT
   {
@@ -5927,6 +6068,18 @@ namespace VKMA_NAMESPACE
   }
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+  VKMA_INLINE void Allocator::free( size_t allocationCount, const Allocation * pAllocations ) const VKMA_NOEXCEPT
+  {
+    vkmaFreeMemoryPages( m_allocator, allocationCount, reinterpret_cast<const VkmaAllocation *>( pAllocations ) );
+  }
+
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_INLINE void Allocator::free( size_t allocationCount, const Allocation & allocations ) const VKMA_NOEXCEPT
+  {
+    vkmaFreeMemoryPages( m_allocator, allocationCount, reinterpret_cast<const VkmaAllocation *>( &allocations ) );
+  }
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
   VKMA_INLINE void Allocator::freeStatsString( char * pStatsString ) const VKMA_NOEXCEPT
   {
     vkmaFreeStatsString( m_allocator, pStatsString );
@@ -5934,6 +6087,20 @@ namespace VKMA_NAMESPACE
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
   VKMA_NODISCARD VKMA_INLINE char Allocator::freeStatsString() const VKMA_NOEXCEPT
+  {
+    char statsString;
+    vkmaFreeStatsString( m_allocator, &statsString );
+    return statsString;
+  }
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
+  VKMA_INLINE void Allocator::free( char * pStatsString ) const VKMA_NOEXCEPT
+  {
+    vkmaFreeStatsString( m_allocator, pStatsString );
+  }
+
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_NODISCARD VKMA_INLINE char Allocator::free() const VKMA_NOEXCEPT
   {
     char statsString;
     vkmaFreeStatsString( m_allocator, &statsString );
