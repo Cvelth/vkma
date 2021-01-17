@@ -5359,7 +5359,7 @@ namespace VKMA_NAMESPACE
     Result    result =
       static_cast<Result>( vkmaCreateAllocator( reinterpret_cast<const VkmaAllocatorCreateInfo *>( &createInfo ),
                                                 reinterpret_cast<VkmaAllocator *>( &allocator ) ) );
-    ObjectDestroy<NoParent> deleter();
+    ObjectDestroy<NoParent> deleter;
     return createResultValue<Allocator>( result, allocator, VKMA_NAMESPACE_STRING "::createAllocatorUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
