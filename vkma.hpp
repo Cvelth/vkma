@@ -3199,23 +3199,29 @@ namespace VKMA_NAMESPACE
   struct VulkanFunctions
   {
 #if !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
-    VKMA_CONSTEXPR VulkanFunctions( PFN_vkGetPhysicalDeviceProperties       vkGetPhysicalDeviceProperties_       = {},
-                                    PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties_ = {},
-                                    PFN_vkAllocateMemory                    vkAllocateMemory_                    = {},
-                                    PFN_vkFreeMemory                        vkFreeMemory_                        = {},
-                                    PFN_vkMapMemory                         vkMapMemory_                         = {},
-                                    PFN_vkUnmapMemory                       vkUnmapMemory_                       = {},
-                                    PFN_vkFlushMappedMemoryRanges           vkFlushMappedMemoryRanges_           = {},
-                                    PFN_vkInvalidateMappedMemoryRanges      vkInvalidateMappedMemoryRanges_      = {},
-                                    PFN_vkBindBufferMemory                  vkBindBufferMemory_                  = {},
-                                    PFN_vkBindImageMemory                   vkBindImageMemory_                   = {},
-                                    PFN_vkGetBufferMemoryRequirements       vkGetBufferMemoryRequirements_       = {},
-                                    PFN_vkGetImageMemoryRequirements        vkGetImageMemoryRequirements_        = {},
-                                    PFN_vkCreateBuffer                      vkCreateBuffer_                      = {},
-                                    PFN_vkDestroyBuffer                     vkDestroyBuffer_                     = {},
-                                    PFN_vkCreateImage                       vkCreateImage_                       = {},
-                                    PFN_vkDestroyImage                      vkDestroyImage_                      = {},
-                                    PFN_vkCmdCopyBuffer                     vkCmdCopyBuffer_ = {} ) VKMA_NOEXCEPT
+    VKMA_CONSTEXPR VulkanFunctions(
+      PFN_vkGetPhysicalDeviceProperties           vkGetPhysicalDeviceProperties_           = {},
+      PFN_vkGetPhysicalDeviceMemoryProperties     vkGetPhysicalDeviceMemoryProperties_     = {},
+      PFN_vkAllocateMemory                        vkAllocateMemory_                        = {},
+      PFN_vkFreeMemory                            vkFreeMemory_                            = {},
+      PFN_vkMapMemory                             vkMapMemory_                             = {},
+      PFN_vkUnmapMemory                           vkUnmapMemory_                           = {},
+      PFN_vkFlushMappedMemoryRanges               vkFlushMappedMemoryRanges_               = {},
+      PFN_vkInvalidateMappedMemoryRanges          vkInvalidateMappedMemoryRanges_          = {},
+      PFN_vkBindBufferMemory                      vkBindBufferMemory_                      = {},
+      PFN_vkBindImageMemory                       vkBindImageMemory_                       = {},
+      PFN_vkGetBufferMemoryRequirements           vkGetBufferMemoryRequirements_           = {},
+      PFN_vkGetImageMemoryRequirements            vkGetImageMemoryRequirements_            = {},
+      PFN_vkCreateBuffer                          vkCreateBuffer_                          = {},
+      PFN_vkDestroyBuffer                         vkDestroyBuffer_                         = {},
+      PFN_vkCreateImage                           vkCreateImage_                           = {},
+      PFN_vkDestroyImage                          vkDestroyImage_                          = {},
+      PFN_vkCmdCopyBuffer                         vkCmdCopyBuffer_                         = {},
+      PFN_vkGetBufferMemoryRequirements2KHR       vkGetBufferMemoryRequirements2KHR_       = {},
+      PFN_vkGetImageMemoryRequirements2KHR        vkGetImageMemoryRequirements2KHR_        = {},
+      PFN_vkBindBufferMemory2KHR                  vkBindBufferMemory2KHR_                  = {},
+      PFN_vkBindImageMemory2KHR                   vkBindImageMemory2KHR_                   = {},
+      PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR_ = {} ) VKMA_NOEXCEPT
       : vkGetPhysicalDeviceProperties( vkGetPhysicalDeviceProperties_ )
       , vkGetPhysicalDeviceMemoryProperties( vkGetPhysicalDeviceMemoryProperties_ )
       , vkAllocateMemory( vkAllocateMemory_ )
@@ -3233,6 +3239,11 @@ namespace VKMA_NAMESPACE
       , vkCreateImage( vkCreateImage_ )
       , vkDestroyImage( vkDestroyImage_ )
       , vkCmdCopyBuffer( vkCmdCopyBuffer_ )
+      , vkGetBufferMemoryRequirements2KHR( vkGetBufferMemoryRequirements2KHR_ )
+      , vkGetImageMemoryRequirements2KHR( vkGetImageMemoryRequirements2KHR_ )
+      , vkBindBufferMemory2KHR( vkBindBufferMemory2KHR_ )
+      , vkBindImageMemory2KHR( vkBindImageMemory2KHR_ )
+      , vkGetPhysicalDeviceMemoryProperties2KHR( vkGetPhysicalDeviceMemoryProperties2KHR_ )
     {}
 
     VKMA_CONSTEXPR VulkanFunctions( VulkanFunctions const & rhs ) VKMA_NOEXCEPT = default;
@@ -3363,6 +3374,39 @@ namespace VKMA_NAMESPACE
       return *this;
     }
 
+    VulkanFunctions & setVkGetBufferMemoryRequirements2KHR(
+      PFN_vkGetBufferMemoryRequirements2KHR vkGetBufferMemoryRequirements2KHR_ ) VKMA_NOEXCEPT
+    {
+      vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR_;
+      return *this;
+    }
+
+    VulkanFunctions & setVkGetImageMemoryRequirements2KHR(
+      PFN_vkGetImageMemoryRequirements2KHR vkGetImageMemoryRequirements2KHR_ ) VKMA_NOEXCEPT
+    {
+      vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR_;
+      return *this;
+    }
+
+    VulkanFunctions & setVkBindBufferMemory2KHR( PFN_vkBindBufferMemory2KHR vkBindBufferMemory2KHR_ ) VKMA_NOEXCEPT
+    {
+      vkBindBufferMemory2KHR = vkBindBufferMemory2KHR_;
+      return *this;
+    }
+
+    VulkanFunctions & setVkBindImageMemory2KHR( PFN_vkBindImageMemory2KHR vkBindImageMemory2KHR_ ) VKMA_NOEXCEPT
+    {
+      vkBindImageMemory2KHR = vkBindImageMemory2KHR_;
+      return *this;
+    }
+
+    VulkanFunctions & setVkGetPhysicalDeviceMemoryProperties2KHR(
+      PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR_ ) VKMA_NOEXCEPT
+    {
+      vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR_;
+      return *this;
+    }
+
     operator VkmaVulkanFunctions const &() const VKMA_NOEXCEPT
     {
       return *reinterpret_cast<const VkmaVulkanFunctions *>( this );
@@ -3389,7 +3433,12 @@ namespace VKMA_NAMESPACE
              ( vkGetImageMemoryRequirements == rhs.vkGetImageMemoryRequirements ) &&
              ( vkCreateBuffer == rhs.vkCreateBuffer ) && ( vkDestroyBuffer == rhs.vkDestroyBuffer ) &&
              ( vkCreateImage == rhs.vkCreateImage ) && ( vkDestroyImage == rhs.vkDestroyImage ) &&
-             ( vkCmdCopyBuffer == rhs.vkCmdCopyBuffer );
+             ( vkCmdCopyBuffer == rhs.vkCmdCopyBuffer ) &&
+             ( vkGetBufferMemoryRequirements2KHR == rhs.vkGetBufferMemoryRequirements2KHR ) &&
+             ( vkGetImageMemoryRequirements2KHR == rhs.vkGetImageMemoryRequirements2KHR ) &&
+             ( vkBindBufferMemory2KHR == rhs.vkBindBufferMemory2KHR ) &&
+             ( vkBindImageMemory2KHR == rhs.vkBindImageMemory2KHR ) &&
+             ( vkGetPhysicalDeviceMemoryProperties2KHR == rhs.vkGetPhysicalDeviceMemoryProperties2KHR );
     }
 
     bool operator!=( VulkanFunctions const & rhs ) const VKMA_NOEXCEPT
@@ -3399,23 +3448,28 @@ namespace VKMA_NAMESPACE
 #endif
 
   public:
-    PFN_vkGetPhysicalDeviceProperties       vkGetPhysicalDeviceProperties       = {};
-    PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties = {};
-    PFN_vkAllocateMemory                    vkAllocateMemory                    = {};
-    PFN_vkFreeMemory                        vkFreeMemory                        = {};
-    PFN_vkMapMemory                         vkMapMemory                         = {};
-    PFN_vkUnmapMemory                       vkUnmapMemory                       = {};
-    PFN_vkFlushMappedMemoryRanges           vkFlushMappedMemoryRanges           = {};
-    PFN_vkInvalidateMappedMemoryRanges      vkInvalidateMappedMemoryRanges      = {};
-    PFN_vkBindBufferMemory                  vkBindBufferMemory                  = {};
-    PFN_vkBindImageMemory                   vkBindImageMemory                   = {};
-    PFN_vkGetBufferMemoryRequirements       vkGetBufferMemoryRequirements       = {};
-    PFN_vkGetImageMemoryRequirements        vkGetImageMemoryRequirements        = {};
-    PFN_vkCreateBuffer                      vkCreateBuffer                      = {};
-    PFN_vkDestroyBuffer                     vkDestroyBuffer                     = {};
-    PFN_vkCreateImage                       vkCreateImage                       = {};
-    PFN_vkDestroyImage                      vkDestroyImage                      = {};
-    PFN_vkCmdCopyBuffer                     vkCmdCopyBuffer                     = {};
+    PFN_vkGetPhysicalDeviceProperties           vkGetPhysicalDeviceProperties           = {};
+    PFN_vkGetPhysicalDeviceMemoryProperties     vkGetPhysicalDeviceMemoryProperties     = {};
+    PFN_vkAllocateMemory                        vkAllocateMemory                        = {};
+    PFN_vkFreeMemory                            vkFreeMemory                            = {};
+    PFN_vkMapMemory                             vkMapMemory                             = {};
+    PFN_vkUnmapMemory                           vkUnmapMemory                           = {};
+    PFN_vkFlushMappedMemoryRanges               vkFlushMappedMemoryRanges               = {};
+    PFN_vkInvalidateMappedMemoryRanges          vkInvalidateMappedMemoryRanges          = {};
+    PFN_vkBindBufferMemory                      vkBindBufferMemory                      = {};
+    PFN_vkBindImageMemory                       vkBindImageMemory                       = {};
+    PFN_vkGetBufferMemoryRequirements           vkGetBufferMemoryRequirements           = {};
+    PFN_vkGetImageMemoryRequirements            vkGetImageMemoryRequirements            = {};
+    PFN_vkCreateBuffer                          vkCreateBuffer                          = {};
+    PFN_vkDestroyBuffer                         vkDestroyBuffer                         = {};
+    PFN_vkCreateImage                           vkCreateImage                           = {};
+    PFN_vkDestroyImage                          vkDestroyImage                          = {};
+    PFN_vkCmdCopyBuffer                         vkCmdCopyBuffer                         = {};
+    PFN_vkGetBufferMemoryRequirements2KHR       vkGetBufferMemoryRequirements2KHR       = {};
+    PFN_vkGetImageMemoryRequirements2KHR        vkGetImageMemoryRequirements2KHR        = {};
+    PFN_vkBindBufferMemory2KHR                  vkBindBufferMemory2KHR                  = {};
+    PFN_vkBindImageMemory2KHR                   vkBindImageMemory2KHR                   = {};
+    PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR = {};
   };
   static_assert( sizeof( VulkanFunctions ) == sizeof( VkmaVulkanFunctions ),
                  "struct and wrapper have different size!" );
@@ -4467,13 +4521,15 @@ namespace VKMA_NAMESPACE
   struct Stats
   {
 #if !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
-    VKMA_CONSTEXPR Stats( StatInfo memoryType_ = {}, StatInfo memoryHeap_ = {}, StatInfo total_ = {} ) VKMA_NOEXCEPT
+    VKMA_CONSTEXPR_14 Stats( std::array<StatInfo, VK_MAX_MEMORY_TYPES> const & memoryType_ = {},
+                             std::array<StatInfo, VK_MAX_MEMORY_HEAPS> const & memoryHeap_ = {},
+                             StatInfo                                          total_      = {} ) VKMA_NOEXCEPT
       : memoryType( memoryType_ )
       , memoryHeap( memoryHeap_ )
       , total( total_ )
     {}
 
-    VKMA_CONSTEXPR Stats( Stats const & rhs ) VKMA_NOEXCEPT = default;
+    VKMA_CONSTEXPR_14 Stats( Stats const & rhs ) VKMA_NOEXCEPT = default;
 
     Stats( VkmaStats const & rhs ) VKMA_NOEXCEPT
     {
@@ -4493,13 +4549,13 @@ namespace VKMA_NAMESPACE
       return *this;
     }
 
-    Stats & setMemoryType( StatInfo const & memoryType_ ) VKMA_NOEXCEPT
+    Stats & setMemoryType( std::array<StatInfo, VK_MAX_MEMORY_TYPES> const & memoryType_ ) VKMA_NOEXCEPT
     {
       memoryType = memoryType_;
       return *this;
     }
 
-    Stats & setMemoryHeap( StatInfo const & memoryHeap_ ) VKMA_NOEXCEPT
+    Stats & setMemoryHeap( std::array<StatInfo, VK_MAX_MEMORY_HEAPS> const & memoryHeap_ ) VKMA_NOEXCEPT
     {
       memoryHeap = memoryHeap_;
       return *this;
@@ -4536,9 +4592,9 @@ namespace VKMA_NAMESPACE
 #endif
 
   public:
-    StatInfo memoryType = {};
-    StatInfo memoryHeap = {};
-    StatInfo total      = {};
+    VKMA_NAMESPACE::ArrayWrapper1D<StatInfo, VK_MAX_MEMORY_TYPES> memoryType = {};
+    VKMA_NAMESPACE::ArrayWrapper1D<StatInfo, VK_MAX_MEMORY_HEAPS> memoryHeap = {};
+    StatInfo                                                      total      = {};
   };
   static_assert( sizeof( Stats ) == sizeof( VkmaStats ), "struct and wrapper have different size!" );
   static_assert( std::is_standard_layout<Stats>::value, "struct wrapper is not a standard layout!" );
