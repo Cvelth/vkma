@@ -5135,7 +5135,6 @@ namespace VKMA_NAMESPACE
 
     void freeMemoryPages( size_t allocationCount, const Allocation * pAllocations ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <>
     void freeMemoryPages( size_t allocationCount, const Allocation & allocations ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
@@ -5211,7 +5210,6 @@ namespace VKMA_NAMESPACE
 
     void setPoolName( Pool pool, const char * pName ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    template <>
     void setPoolName( Pool pool, const char & name ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
