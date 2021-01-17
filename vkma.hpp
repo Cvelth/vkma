@@ -4906,30 +4906,35 @@ namespace VKMA_NAMESPACE
 
 #ifndef VKMA_NO_SMART_HANDLE
   class Allocator;
+  template <>
   class UniqueHandleTraits<Allocation>
   {
   public:
     using deleter = ObjectFree<Allocator>;
   };
   using UniqueAllocation = UniqueHandle<Allocation>;
+  template <>
   class UniqueHandleTraits<Buffer>
   {
   public:
     using deleter = ObjectDestroy<Allocator>;
   };
   using UniqueBuffer = UniqueHandle<Buffer>;
+  template <>
   class UniqueHandleTraits<DefragmentationContext>
   {
   public:
     using deleter = ObjectDestroy<Allocator>;
   };
   using UniqueDefragmentationContext = UniqueHandle<DefragmentationContext>;
+  template <>
   class UniqueHandleTraits<Image>
   {
   public:
     using deleter = ObjectDestroy<Allocator>;
   };
   using UniqueImage = UniqueHandle<Image>;
+  template <>
   class UniqueHandleTraits<Pool>
   {
   public:
@@ -5341,6 +5346,7 @@ namespace VKMA_NAMESPACE
   };
 
 #ifndef VKMA_NO_SMART_HANDLE
+  template <>
   class UniqueHandleTraits<Allocator>
   {
   public:
