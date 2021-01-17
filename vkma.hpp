@@ -1594,28 +1594,17 @@ namespace VKMA_NAMESPACE
 #define VKMA_DEFAULT_ARGUMENT_ASSIGNMENT         = {}
 #define VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr
 
-  struct AllocationCallbacks;
-
   template <typename OwnerType>
   class ObjectDestroy
   {
   public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( OwnerType                                               owner,
-                   Optional<const AllocationCallbacks> allocationCallbacks VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT )
-      VKMA_NOEXCEPT
-      : m_owner( owner )
-      , m_allocationCallbacks( allocationCallbacks )
-    {}
+    ObjectDestroy( OwnerType owner ) VKMA_NOEXCEPT : m_owner( owner ) {}
 
     OwnerType getOwner() const VKMA_NOEXCEPT
     {
       return m_owner;
-    }
-    Optional<const AllocationCallbacks> getAllocator() const VKMA_NOEXCEPT
-    {
-      return m_allocationCallbacks;
     }
 
   protected:
@@ -1623,12 +1612,11 @@ namespace VKMA_NAMESPACE
     void destroy( T t ) VKMA_NOEXCEPT
     {
       VKMA_ASSERT( m_owner );
-      m_owner.destroy( t, m_allocationCallbacks );
+      m_owner.destroy( t );
     }
 
   private:
-    OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
+    OwnerType m_owner = {};
   };
 
   class NoParent;
@@ -1639,24 +1627,16 @@ namespace VKMA_NAMESPACE
   public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks ) VKMA_NOEXCEPT
-      : m_allocationCallbacks( allocationCallbacks )
-    {}
-
-    Optional<const AllocationCallbacks> getAllocator() const VKMA_NOEXCEPT
-    {
-      return m_allocationCallbacks;
-    }
+    ObjectDestroy() VKMA_NOEXCEPT {}
 
   protected:
     template <typename T>
     void destroy( T t ) VKMA_NOEXCEPT
     {
-      t.destroy( m_allocationCallbacks );
+      t.destroy();
     }
 
   private:
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
   };
 
   template <typename OwnerType>
@@ -1665,21 +1645,11 @@ namespace VKMA_NAMESPACE
   public:
     ObjectFree() = default;
 
-    ObjectFree( OwnerType                                               owner,
-                Optional<const AllocationCallbacks> allocationCallbacks VKMA_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT )
-      VKMA_NOEXCEPT
-      : m_owner( owner )
-      , m_allocationCallbacks( allocationCallbacks )
-    {}
+    ObjectFree( OwnerType owner ) VKMA_NOEXCEPT : m_owner( owner ) {}
 
     OwnerType getOwner() const VKMA_NOEXCEPT
     {
       return m_owner;
-    }
-
-    Optional<const AllocationCallbacks> getAllocator() const VKMA_NOEXCEPT
-    {
-      return m_allocationCallbacks;
     }
 
   protected:
@@ -1687,12 +1657,11 @@ namespace VKMA_NAMESPACE
     void destroy( T t ) VKMA_NOEXCEPT
     {
       VKMA_ASSERT( m_owner );
-      m_owner.free( t, m_allocationCallbacks );
+      m_owner.free( t );
     }
 
   private:
-    OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
+    OwnerType m_owner = {};
   };
 
   template <typename OwnerType>
@@ -5392,7 +5361,7 @@ namespace VKMA_NAMESPACE
     Result    result =
       static_cast<Result>( vkmaCreateAllocator( reinterpret_cast<const VkmaAllocatorCreateInfo *>( &createInfo ),
                                                 reinterpret_cast<VkmaAllocator *>( &allocator ) ) );
-    ObjectDestroy<NoParent> deleter( allocator );
+    ObjectDestroy<NoParent> deleter();
     return createResultValue<Allocator>( result, allocator, VKMA_NAMESPACE_STRING "::createAllocatorUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
@@ -5433,7 +5402,7 @@ namespace VKMA_NAMESPACE
                                                &vkMemoryRequirements,
                                                reinterpret_cast<const VkmaAllocationCreateInfo *>( &createInfo ),
                                                reinterpret_cast<VkmaAllocation *>( &allocation ) ) );
-    ObjectFree<Allocator> deleter( *this, allocator );
+    ObjectFree<Allocator> deleter( *this );
     return createResultValue<Allocation>(
       result, allocation, VKMA_NAMESPACE_STRING "::Allocator::allocateMemoryUnique", deleter );
   }
@@ -5474,7 +5443,7 @@ namespace VKMA_NAMESPACE
                                    buffer,
                                    reinterpret_cast<const VkmaAllocationCreateInfo *>( &createInfo ),
                                    reinterpret_cast<VkmaAllocation *>( &allocation ) ) );
-    ObjectFree<Allocator> deleter( *this, allocator );
+    ObjectFree<Allocator> deleter( *this );
     return createResultValue<Allocation>(
       result, allocation, VKMA_NAMESPACE_STRING "::Allocator::allocateMemoryForBufferUnique", deleter );
   }
@@ -5515,7 +5484,7 @@ namespace VKMA_NAMESPACE
                                   image,
                                   reinterpret_cast<const VkmaAllocationCreateInfo *>( &createInfo ),
                                   reinterpret_cast<VkmaAllocation *>( &allocation ) ) );
-    ObjectFree<Allocator> deleter( *this, allocator );
+    ObjectFree<Allocator> deleter( *this );
     return createResultValue<Allocation>(
       result, allocation, VKMA_NAMESPACE_STRING "::Allocator::allocateMemoryForImageUnique", deleter );
   }
@@ -5564,7 +5533,7 @@ namespace VKMA_NAMESPACE
                                                     reinterpret_cast<const VkmaAllocationCreateInfo *>( &createInfo ),
                                                     allocationCount,
                                                     reinterpret_cast<VkmaAllocation *>( &allocations ) ) );
-    ObjectFree<Allocator> deleter( *this, allocator );
+    ObjectFree<Allocator> deleter( *this );
     return createResultValue<Allocation>(
       result, allocations, VKMA_NAMESPACE_STRING "::Allocator::allocateMemoryPagesUnique", deleter );
   }
@@ -5734,7 +5703,7 @@ namespace VKMA_NAMESPACE
                         &bufferCreateInfo,
                         reinterpret_cast<const VkmaAllocationCreateInfo *>( &allocationCreateInfo ),
                         reinterpret_cast<VkmaBuffer *>( &buffer ) ) );
-    ObjectDestroy<Allocator> deleter( *this, allocator );
+    ObjectDestroy<Allocator> deleter( *this );
     return createResultValue<Buffer>(
       result, buffer, VKMA_NAMESPACE_STRING "::Allocator::createBufferUnique", deleter );
   }
@@ -5771,7 +5740,7 @@ namespace VKMA_NAMESPACE
       vkmaCreateDefragmentationContext( m_allocator,
                                         reinterpret_cast<const VkmaDefragmentationInfo2 *>( &info ),
                                         reinterpret_cast<VkmaDefragmentationContext *>( &context ) ) );
-    ObjectDestroy<Allocator> deleter( *this, allocator );
+    ObjectDestroy<Allocator> deleter( *this );
     return createResultValue<DefragmentationContext>(
       result, context, VKMA_NAMESPACE_STRING "::Allocator::createDefragmentationContextUnique", deleter );
   }
@@ -5814,7 +5783,7 @@ namespace VKMA_NAMESPACE
                                             &imageCreateInfo,
                                             reinterpret_cast<const VkmaAllocationCreateInfo *>( &allocationCreateInfo ),
                                             reinterpret_cast<VkmaImage *>( &image ) ) );
-    ObjectDestroy<Allocator> deleter( *this, allocator );
+    ObjectDestroy<Allocator> deleter( *this );
     return createResultValue<Image>( result, image, VKMA_NAMESPACE_STRING "::Allocator::createImageUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
@@ -5843,7 +5812,7 @@ namespace VKMA_NAMESPACE
     Allocation allocation;
     Result     result =
       static_cast<Result>( vkmaCreateLostAllocation( m_allocator, reinterpret_cast<VkmaAllocation *>( &allocation ) ) );
-    ObjectDestroy<Allocator> deleter( *this, allocator );
+    ObjectFree<Allocator> deleter( *this );
     return createResultValue<Allocation>(
       result, allocation, VKMA_NAMESPACE_STRING "::Allocator::createLostAllocationUnique", deleter );
   }
@@ -5877,7 +5846,7 @@ namespace VKMA_NAMESPACE
     Result                   result = static_cast<Result>( vkmaCreatePool( m_allocator,
                                                          reinterpret_cast<const VkmaPoolCreateInfo *>( &createInfo ),
                                                          reinterpret_cast<VkmaPool *>( &pool ) ) );
-    ObjectDestroy<Allocator> deleter( *this, allocator );
+    ObjectDestroy<Allocator> deleter( *this );
     return createResultValue<Pool>( result, pool, VKMA_NAMESPACE_STRING "::Allocator::createPoolUnique", deleter );
   }
 #  endif /*VKMA_NO_SMART_HANDLE*/
