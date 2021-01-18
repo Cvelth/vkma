@@ -589,7 +589,7 @@ inline VkmaResult vkmaCreateBuffer( VkmaAllocator                    allocator,
                                     const VkmaAllocationCreateInfo * pAllocationCreateInfo,
                                     VkmaBuffer *                     pBuffer )
 {
-  VMA_ASSERT( pBuffer && *pBuffer );
+  VMA_ASSERT( pBuffer );
   *pBuffer = reinterpret_cast<VkmaBuffer>( new VkmaBuffer_T{} );
   return vmaCreateBuffer(
     reinterpret_cast<VmaAllocator>( allocator ),
@@ -612,7 +612,7 @@ inline VkmaResult vkmaCreateImage( VkmaAllocator                    allocator,
                                    const VkmaAllocationCreateInfo * pAllocationCreateInfo,
                                    VkmaImage *                      pImage )
 {
-  VMA_ASSERT( pImage && *pImage );
+  VMA_ASSERT( pImage );
   *pImage = reinterpret_cast<VkmaImage>( new VkmaImage_T{} );
   return vmaCreateImage( reinterpret_cast<VmaAllocator>( allocator ),
                          pImageCreateInfo,
