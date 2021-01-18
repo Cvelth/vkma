@@ -5046,7 +5046,7 @@ namespace VKMA_NAMESPACE
 
     void buildStatsString( VkBool32 detailedMap, char ** ppStatsString ) const VKMA_NOEXCEPT;
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD char buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT;
+    VKMA_NODISCARD char * buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT;
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
     void calculateStats( Stats * pStats ) const VKMA_NOEXCEPT;
@@ -5615,9 +5615,9 @@ namespace VKMA_NAMESPACE
   }
 
 #ifndef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD VKMA_INLINE char Allocator::buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT
+  VKMA_NODISCARD VKMA_INLINE char * Allocator::buildStatsString( VkBool32 detailedMap ) const VKMA_NOEXCEPT
   {
-    char pStatsString;
+    char * pStatsString;
     vkmaBuildStatsString( m_allocator, detailedMap, &pStatsString );
     return pStatsString;
   }
