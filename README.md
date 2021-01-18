@@ -33,11 +33,6 @@ auto vk_buffer = vkma_buffer->get();
 auto allocation = vkma_buffer->getAllocation();
 ```
 
-## Breaking API changes
-In order to simplify generation some functions were renamed:
-- [`vmaDefragmentationBegin(...)`](https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/vk__mem__alloc_8h.html#a36ba776fd7fd5cb1e9359fdc0d8e6e8a) becomes  `allocator.createDefragmentationContext(...)` instead of `allocator.defragmentationBegin(...)`
-- [`vmaDefragmentationEnd(...)`](https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/vk__mem__alloc_8h.html#a8774e20e91e245aae959ba63efa15dd2) becomes `allocator.destroyDefragmentationContext(...)` instead of `allocator.defragmentationEnd(...)`
-
 ## See also
 - [The generator](https://github.com/Cvelth/vkma_generator)
 - [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
