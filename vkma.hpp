@@ -534,16 +534,16 @@ inline VkmaResult vkmaCheckCorruption( VkmaAllocator allocator, uint32_t memoryT
 {
   return vmaCheckCorruption( reinterpret_cast<VmaAllocator>( allocator ), memoryTypeBits );
 }
-inline VkmaResult vkmaCreateDefragmentationContext( VkmaAllocator                    allocator,
-                                                    const VkmaDefragmentationInfo2 * pInfo,
-                                                    VkmaDefragmentationContext *     pContext )
+inline VkmaResult vkmaBeginDefragmentation( VkmaAllocator                    allocator,
+                                            const VkmaDefragmentationInfo2 * pInfo,
+                                            VkmaDefragmentationContext *     pContext )
 {
   return vmaDefragmentationBegin( reinterpret_cast<VmaAllocator>( allocator ),
                                   reinterpret_cast<const VmaDefragmentationInfo2 *>( pInfo ),
                                   nullptr,
                                   reinterpret_cast<VmaDefragmentationContext *>( pContext ) );
 }
-inline VkmaResult vkmaDestroyDefragmentationContext( VkmaAllocator allocator, VkmaDefragmentationContext context )
+inline VkmaResult vkmaEndDefragmentation( VkmaAllocator allocator, VkmaDefragmentationContext context )
 {
   return vmaDefragmentationEnd( reinterpret_cast<VmaAllocator>( allocator ),
                                 reinterpret_cast<VmaDefragmentationContext>( context ) );
@@ -1656,6 +1656,31 @@ namespace VKMA_NAMESPACE
     {
       VKMA_ASSERT( m_owner );
       m_owner.free( t );
+    }
+
+  private:
+    OwnerType m_owner = {};
+  };
+
+  template <typename OwnerType>
+  class ObjectEnd
+  {
+  public:
+    ObjectEnd() = default;
+
+    ObjectEnd( OwnerType owner ) VKMA_NOEXCEPT : m_owner( owner ) {}
+
+    OwnerType getOwner() const VKMA_NOEXCEPT
+    {
+      return m_owner;
+    }
+
+  protected:
+    template <typename T>
+    void destroy( T t ) VKMA_NOEXCEPT
+    {
+      VKMA_ASSERT( m_owner );
+      m_owner.end( t );
     }
 
   private:
@@ -4624,6 +4649,81 @@ namespace VKMA_NAMESPACE
   static_assert( sizeof( Stats ) == sizeof( VkmaStats ), "struct and wrapper have different size!" );
   static_assert( std::is_standard_layout<Stats>::value, "struct wrapper is not a standard layout!" );
 
+  class DefragmentationContext
+  {
+  public:
+    using CType = VkmaDefragmentationContext;
+
+  public:
+    VKMA_CONSTEXPR DefragmentationContext() VKMA_NOEXCEPT : m_defragmentationContext( VKMA_NULL_HANDLE ) {}
+
+    VKMA_CONSTEXPR DefragmentationContext( std::nullptr_t ) VKMA_NOEXCEPT : m_defragmentationContext( VKMA_NULL_HANDLE )
+    {}
+
+    VKMA_TYPESAFE_EXPLICIT DefragmentationContext( VkmaDefragmentationContext defragmentationContext ) VKMA_NOEXCEPT
+      : m_defragmentationContext( defragmentationContext )
+    {}
+
+#if defined( VKMA_TYPESAFE_CONVERSION )
+    DefragmentationContext & operator=( VkmaDefragmentationContext defragmentationContext ) VKMA_NOEXCEPT
+    {
+      m_defragmentationContext = defragmentationContext;
+      return *this;
+    }
+#endif
+
+    DefragmentationContext & operator=( std::nullptr_t ) VKMA_NOEXCEPT
+    {
+      m_defragmentationContext = VKMA_NULL_HANDLE;
+      return *this;
+    }
+
+#if defined( VKMA_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( DefragmentationContext const & ) const = default;
+#else
+    bool operator==( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext == rhs.m_defragmentationContext;
+    }
+
+    bool operator!=( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext != rhs.m_defragmentationContext;
+    }
+
+    bool operator<( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext < rhs.m_defragmentationContext;
+    }
+#endif
+
+    VKMA_TYPESAFE_EXPLICIT operator VkmaDefragmentationContext() const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext;
+    }
+
+    explicit operator bool() const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext != VKMA_NULL_HANDLE;
+    }
+
+    bool operator!() const VKMA_NOEXCEPT
+    {
+      return m_defragmentationContext == VKMA_NULL_HANDLE;
+    }
+
+  private:
+    VkmaDefragmentationContext m_defragmentationContext;
+  };
+  static_assert( sizeof( VKMA_NAMESPACE::DefragmentationContext ) == sizeof( VkmaDefragmentationContext ),
+                 "handle and wrapper have different size!" );
+
+  template <>
+  struct isVulkanHandleType<VKMA_NAMESPACE::DefragmentationContext>
+  {
+    static VKMA_CONST_OR_CONSTEXPR bool value = true;
+  };
+
   class Buffer
   {
   public:
@@ -4701,81 +4801,6 @@ namespace VKMA_NAMESPACE
 
   template <>
   struct isVulkanHandleType<VKMA_NAMESPACE::Buffer>
-  {
-    static VKMA_CONST_OR_CONSTEXPR bool value = true;
-  };
-
-  class DefragmentationContext
-  {
-  public:
-    using CType = VkmaDefragmentationContext;
-
-  public:
-    VKMA_CONSTEXPR DefragmentationContext() VKMA_NOEXCEPT : m_defragmentationContext( VKMA_NULL_HANDLE ) {}
-
-    VKMA_CONSTEXPR DefragmentationContext( std::nullptr_t ) VKMA_NOEXCEPT : m_defragmentationContext( VKMA_NULL_HANDLE )
-    {}
-
-    VKMA_TYPESAFE_EXPLICIT DefragmentationContext( VkmaDefragmentationContext defragmentationContext ) VKMA_NOEXCEPT
-      : m_defragmentationContext( defragmentationContext )
-    {}
-
-#if defined( VKMA_TYPESAFE_CONVERSION )
-    DefragmentationContext & operator=( VkmaDefragmentationContext defragmentationContext ) VKMA_NOEXCEPT
-    {
-      m_defragmentationContext = defragmentationContext;
-      return *this;
-    }
-#endif
-
-    DefragmentationContext & operator=( std::nullptr_t ) VKMA_NOEXCEPT
-    {
-      m_defragmentationContext = VKMA_NULL_HANDLE;
-      return *this;
-    }
-
-#if defined( VKMA_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( DefragmentationContext const & ) const = default;
-#else
-    bool operator==( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext == rhs.m_defragmentationContext;
-    }
-
-    bool operator!=( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext != rhs.m_defragmentationContext;
-    }
-
-    bool operator<( DefragmentationContext const & rhs ) const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext < rhs.m_defragmentationContext;
-    }
-#endif
-
-    VKMA_TYPESAFE_EXPLICIT operator VkmaDefragmentationContext() const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext;
-    }
-
-    explicit operator bool() const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext != VKMA_NULL_HANDLE;
-    }
-
-    bool operator!() const VKMA_NOEXCEPT
-    {
-      return m_defragmentationContext == VKMA_NULL_HANDLE;
-    }
-
-  private:
-    VkmaDefragmentationContext m_defragmentationContext;
-  };
-  static_assert( sizeof( VKMA_NAMESPACE::DefragmentationContext ) == sizeof( VkmaDefragmentationContext ),
-                 "handle and wrapper have different size!" );
-
-  template <>
-  struct isVulkanHandleType<VKMA_NAMESPACE::DefragmentationContext>
   {
     static VKMA_CONST_OR_CONSTEXPR bool value = true;
   };
@@ -4881,7 +4906,7 @@ namespace VKMA_NAMESPACE
   class UniqueHandleTraits<DefragmentationContext>
   {
   public:
-    using deleter = ObjectDestroy<Allocator>;
+    using deleter = ObjectEnd<Allocator>;
   };
   using UniqueDefragmentationContext = UniqueHandle<DefragmentationContext>;
   template <>
@@ -5000,6 +5025,17 @@ namespace VKMA_NAMESPACE
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+    VKMA_NODISCARD Result beginDefragmentation( const DefragmentationInfo2 * pInfo,
+                                                DefragmentationContext *     pContext ) const VKMA_NOEXCEPT;
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<DefragmentationContext>::type
+      beginDefragmentation( const DefragmentationInfo2 & info ) const;
+#  ifndef VKMA_NO_SMART_HANDLE
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<DefragmentationContext>>::type
+                                      beginDefragmentationUnique( const DefragmentationInfo2 & info ) const;
+#  endif /*VKMA_NO_SMART_HANDLE*/
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
 #ifdef VKMA_DISABLE_ENHANCED_MODE
     VKMA_NODISCARD Result bindBufferMemory( Allocation allocation, VkBuffer buffer ) const VKMA_NOEXCEPT;
 #else
@@ -5071,17 +5107,6 @@ namespace VKMA_NAMESPACE
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-    VKMA_NODISCARD Result createDefragmentationContext( const DefragmentationInfo2 * pInfo,
-                                                        DefragmentationContext *     pContext ) const VKMA_NOEXCEPT;
-#ifndef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<DefragmentationContext>::type
-      createDefragmentationContext( const DefragmentationInfo2 & info ) const;
-#  ifndef VKMA_NO_SMART_HANDLE
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<DefragmentationContext>>::type
-                                      createDefragmentationContextUnique( const DefragmentationInfo2 & info ) const;
-#  endif /*VKMA_NO_SMART_HANDLE*/
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
     VKMA_NODISCARD Result createImage( const VkImageCreateInfo *    pImageCreateInfo,
                                        const AllocationCreateInfo * pAllocationCreateInfo,
                                        Image *                      pImage ) const VKMA_NOEXCEPT;
@@ -5120,20 +5145,6 @@ namespace VKMA_NAMESPACE
 
     void destroy( Buffer buffer ) const VKMA_NOEXCEPT;
 
-#ifdef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD Result destroyDefragmentationContext( DefragmentationContext context ) const VKMA_NOEXCEPT;
-#else
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type
-      destroyDefragmentationContext( DefragmentationContext context ) const;
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
-#ifdef VKMA_DISABLE_ENHANCED_MODE
-    VKMA_NODISCARD Result destroy( DefragmentationContext context ) const VKMA_NOEXCEPT;
-#else
-    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type
-      destroy( DefragmentationContext context ) const;
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
     void destroyImage( Image image ) const VKMA_NOEXCEPT;
 
     void destroy( Image image ) const VKMA_NOEXCEPT;
@@ -5141,6 +5152,19 @@ namespace VKMA_NAMESPACE
     void destroyPool( Pool pool ) const VKMA_NOEXCEPT;
 
     void destroy( Pool pool ) const VKMA_NOEXCEPT;
+
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+    VKMA_NODISCARD Result endDefragmentation( DefragmentationContext context ) const VKMA_NOEXCEPT;
+#else
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type
+      endDefragmentation( DefragmentationContext context ) const;
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+    VKMA_NODISCARD Result end( DefragmentationContext context ) const VKMA_NOEXCEPT;
+#else
+    VKMA_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<void>::type end( DefragmentationContext context ) const;
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
     VKMA_NODISCARD Result findMemoryTypeIndex( uint32_t                     memoryTypeBits,
                                                const AllocationCreateInfo * pAllocationCreateInfo,
@@ -5528,6 +5552,43 @@ namespace VKMA_NAMESPACE
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
+  VKMA_NODISCARD VKMA_INLINE Result Allocator::beginDefragmentation(
+    const DefragmentationInfo2 * pInfo, DefragmentationContext * pContext ) const VKMA_NOEXCEPT
+  {
+    return static_cast<Result>(
+      vkmaBeginDefragmentation( m_allocator,
+                                reinterpret_cast<const VkmaDefragmentationInfo2 *>( pInfo ),
+                                reinterpret_cast<VkmaDefragmentationContext *>( pContext ) ) );
+  }
+
+#ifndef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<DefragmentationContext>::type
+                                    Allocator::beginDefragmentation( const DefragmentationInfo2 & info ) const
+  {
+    DefragmentationContext context;
+    Result                 result =
+      static_cast<Result>( vkmaBeginDefragmentation( m_allocator,
+                                                     reinterpret_cast<const VkmaDefragmentationInfo2 *>( &info ),
+                                                     reinterpret_cast<VkmaDefragmentationContext *>( &context ) ) );
+    return createResultValue( result, context, VKMA_NAMESPACE_STRING "::Allocator::beginDefragmentation" );
+  }
+
+#  ifndef VKMA_NO_SMART_HANDLE
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<DefragmentationContext>>::type
+                                    Allocator::beginDefragmentationUnique( const DefragmentationInfo2 & info ) const
+  {
+    DefragmentationContext context;
+    Result                 result =
+      static_cast<Result>( vkmaBeginDefragmentation( m_allocator,
+                                                     reinterpret_cast<const VkmaDefragmentationInfo2 *>( &info ),
+                                                     reinterpret_cast<VkmaDefragmentationContext *>( &context ) ) );
+    ObjectEnd<Allocator> deleter( *this );
+    return createResultValue<DefragmentationContext>(
+      result, context, VKMA_NAMESPACE_STRING "::Allocator::beginDefragmentationUnique", deleter );
+  }
+#  endif /*VKMA_NO_SMART_HANDLE*/
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
 #ifdef VKMA_DISABLE_ENHANCED_MODE
   VKMA_NODISCARD VKMA_INLINE Result Allocator::bindBufferMemory( Allocation allocation,
                                                                  VkBuffer   buffer ) const VKMA_NOEXCEPT
@@ -5698,43 +5759,6 @@ namespace VKMA_NAMESPACE
 #  endif /*VKMA_NO_SMART_HANDLE*/
 #endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
-  VKMA_NODISCARD VKMA_INLINE Result Allocator::createDefragmentationContext(
-    const DefragmentationInfo2 * pInfo, DefragmentationContext * pContext ) const VKMA_NOEXCEPT
-  {
-    return static_cast<Result>(
-      vkmaCreateDefragmentationContext( m_allocator,
-                                        reinterpret_cast<const VkmaDefragmentationInfo2 *>( pInfo ),
-                                        reinterpret_cast<VkmaDefragmentationContext *>( pContext ) ) );
-  }
-
-#ifndef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<DefragmentationContext>::type
-                                    Allocator::createDefragmentationContext( const DefragmentationInfo2 & info ) const
-  {
-    DefragmentationContext context;
-    Result                 result = static_cast<Result>(
-      vkmaCreateDefragmentationContext( m_allocator,
-                                        reinterpret_cast<const VkmaDefragmentationInfo2 *>( &info ),
-                                        reinterpret_cast<VkmaDefragmentationContext *>( &context ) ) );
-    return createResultValue( result, context, VKMA_NAMESPACE_STRING "::Allocator::createDefragmentationContext" );
-  }
-
-#  ifndef VKMA_NO_SMART_HANDLE
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<UniqueHandle<DefragmentationContext>>::type
-    Allocator::createDefragmentationContextUnique( const DefragmentationInfo2 & info ) const
-  {
-    DefragmentationContext context;
-    Result                 result = static_cast<Result>(
-      vkmaCreateDefragmentationContext( m_allocator,
-                                        reinterpret_cast<const VkmaDefragmentationInfo2 *>( &info ),
-                                        reinterpret_cast<VkmaDefragmentationContext *>( &context ) ) );
-    ObjectDestroy<Allocator> deleter( *this );
-    return createResultValue<DefragmentationContext>(
-      result, context, VKMA_NAMESPACE_STRING "::Allocator::createDefragmentationContextUnique", deleter );
-  }
-#  endif /*VKMA_NO_SMART_HANDLE*/
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
   VKMA_NODISCARD VKMA_INLINE Result Allocator::createImage( const VkImageCreateInfo *    pImageCreateInfo,
                                                             const AllocationCreateInfo * pAllocationCreateInfo,
                                                             Image *                      pImage ) const VKMA_NOEXCEPT
@@ -5855,39 +5879,6 @@ namespace VKMA_NAMESPACE
     vkmaDestroyBuffer( m_allocator, static_cast<VkmaBuffer>( buffer ) );
   }
 
-#ifdef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD VKMA_INLINE Result
-    Allocator::destroyDefragmentationContext( DefragmentationContext context ) const VKMA_NOEXCEPT
-  {
-    return static_cast<Result>(
-      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
-  }
-#else
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type
-    Allocator::destroyDefragmentationContext( DefragmentationContext context ) const
-  {
-    Result result = static_cast<Result>(
-      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
-    return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::destroyDefragmentationContext" );
-  }
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
-#ifdef VKMA_DISABLE_ENHANCED_MODE
-  VKMA_NODISCARD VKMA_INLINE Result Allocator::destroy( DefragmentationContext context ) const VKMA_NOEXCEPT
-  {
-    return static_cast<Result>(
-      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
-  }
-#else
-  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type
-    Allocator::destroy( DefragmentationContext context ) const
-  {
-    Result result = static_cast<Result>(
-      vkmaDestroyDefragmentationContext( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
-    return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::destroy" );
-  }
-#endif /*VKMA_DISABLE_ENHANCED_MODE*/
-
   VKMA_INLINE void Allocator::destroyImage( Image image ) const VKMA_NOEXCEPT
   {
     vkmaDestroyImage( m_allocator, static_cast<VkmaImage>( image ) );
@@ -5907,6 +5898,38 @@ namespace VKMA_NAMESPACE
   {
     vkmaDestroyPool( m_allocator, static_cast<VkmaPool>( pool ) );
   }
+
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_NODISCARD VKMA_INLINE Result Allocator::endDefragmentation( DefragmentationContext context ) const VKMA_NOEXCEPT
+  {
+    return static_cast<Result>(
+      vkmaEndDefragmentation( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+  }
+#else
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type
+    Allocator::endDefragmentation( DefragmentationContext context ) const
+  {
+    Result result =
+      static_cast<Result>( vkmaEndDefragmentation( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+    return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::endDefragmentation" );
+  }
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
+
+#ifdef VKMA_DISABLE_ENHANCED_MODE
+  VKMA_NODISCARD VKMA_INLINE Result Allocator::end( DefragmentationContext context ) const VKMA_NOEXCEPT
+  {
+    return static_cast<Result>(
+      vkmaEndDefragmentation( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+  }
+#else
+  VKMA_NODISCARD_WHEN_NO_EXCEPTIONS VKMA_INLINE typename ResultValueType<void>::type
+    Allocator::end( DefragmentationContext context ) const
+  {
+    Result result =
+      static_cast<Result>( vkmaEndDefragmentation( m_allocator, static_cast<VkmaDefragmentationContext>( context ) ) );
+    return createResultValue( result, VKMA_NAMESPACE_STRING "::Allocator::end" );
+  }
+#endif /*VKMA_DISABLE_ENHANCED_MODE*/
 
   VKMA_NODISCARD VKMA_INLINE Result Allocator::findMemoryTypeIndex( uint32_t                     memoryTypeBits,
                                                                     const AllocationCreateInfo * pAllocationCreateInfo,
