@@ -1742,64 +1742,61 @@ namespace VKMA_NAMESPACE
 
   enum class AllocationCreateFlagBits : VkmaAllocationCreateFlags
   {
-    eVmaAllocationCreateDedicatedMemory          = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
-    eVmaAllocationCreateNeverAllocate            = VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT,
-    eVmaAllocationCreateMapped                   = VMA_ALLOCATION_CREATE_MAPPED_BIT,
-    eVmaAllocationCreateCanBecomeLost            = VMA_ALLOCATION_CREATE_CAN_BECOME_LOST_BIT,
-    eVmaAllocationCreateCanMakeOtherLost         = VMA_ALLOCATION_CREATE_CAN_MAKE_OTHER_LOST_BIT,
-    eVmaAllocationCreateUserDataCopyString       = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT,
-    eVmaAllocationCreateUpperAddress             = VMA_ALLOCATION_CREATE_UPPER_ADDRESS_BIT,
-    eVmaAllocationCreateDontBind                 = VMA_ALLOCATION_CREATE_DONT_BIND_BIT,
-    eVmaAllocationCreateWithinBudget             = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT,
-    eVmaAllocationCreateStrategyBestFit          = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT,
-    eVmaAllocationCreateStrategyWorstFit         = VMA_ALLOCATION_CREATE_STRATEGY_WORST_FIT_BIT,
-    eVmaAllocationCreateStrategyFirstFit         = VMA_ALLOCATION_CREATE_STRATEGY_FIRST_FIT_BIT,
-    eVmaAllocationCreateStrategyMask             = VMA_ALLOCATION_CREATE_STRATEGY_MASK,
-    eVmaAllocationCreateStrategyMinFragmentation = VMA_ALLOCATION_CREATE_STRATEGY_MIN_FRAGMENTATION_BIT,
-    eVmaAllocationCreateStrategyMinMemory        = VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT,
-    eVmaAllocationCreateStrategyMinTime          = VMA_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT
+    eDedicatedMemory          = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+    eNeverAllocate            = VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT,
+    eMapped                   = VMA_ALLOCATION_CREATE_MAPPED_BIT,
+    eCanBecomeLost            = VMA_ALLOCATION_CREATE_CAN_BECOME_LOST_BIT,
+    eCanMakeOtherLost         = VMA_ALLOCATION_CREATE_CAN_MAKE_OTHER_LOST_BIT,
+    eUserDataCopyString       = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT,
+    eUpperAddress             = VMA_ALLOCATION_CREATE_UPPER_ADDRESS_BIT,
+    eDontBind                 = VMA_ALLOCATION_CREATE_DONT_BIND_BIT,
+    eWithinBudget             = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT,
+    eStrategyBestFit          = VMA_ALLOCATION_CREATE_STRATEGY_BEST_FIT_BIT,
+    eStrategyWorstFit         = VMA_ALLOCATION_CREATE_STRATEGY_WORST_FIT_BIT,
+    eStrategyFirstFit         = VMA_ALLOCATION_CREATE_STRATEGY_FIRST_FIT_BIT,
+    eStrategyMask             = VMA_ALLOCATION_CREATE_STRATEGY_MASK,
+    eStrategyMinFragmentation = VMA_ALLOCATION_CREATE_STRATEGY_MIN_FRAGMENTATION_BIT,
+    eStrategyMinMemory        = VMA_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT,
+    eStrategyMinTime          = VMA_ALLOCATION_CREATE_STRATEGY_MIN_TIME_BIT
   };
 
   VKMA_INLINE std::string to_string( AllocationCreateFlagBits value )
   {
     switch ( value )
     {
-      case AllocationCreateFlagBits::eVmaAllocationCreateDedicatedMemory: return "VmaAllocationCreateDedicatedMemory";
-      case AllocationCreateFlagBits::eVmaAllocationCreateNeverAllocate: return "VmaAllocationCreateNeverAllocate";
-      case AllocationCreateFlagBits::eVmaAllocationCreateMapped: return "VmaAllocationCreateMapped";
-      case AllocationCreateFlagBits::eVmaAllocationCreateCanBecomeLost: return "VmaAllocationCreateCanBecomeLost";
-      case AllocationCreateFlagBits::eVmaAllocationCreateCanMakeOtherLost: return "VmaAllocationCreateCanMakeOtherLost";
-      case AllocationCreateFlagBits::eVmaAllocationCreateUserDataCopyString:
-        return "VmaAllocationCreateUserDataCopyString";
-      case AllocationCreateFlagBits::eVmaAllocationCreateUpperAddress: return "VmaAllocationCreateUpperAddress";
-      case AllocationCreateFlagBits::eVmaAllocationCreateDontBind: return "VmaAllocationCreateDontBind";
-      case AllocationCreateFlagBits::eVmaAllocationCreateWithinBudget: return "VmaAllocationCreateWithinBudget";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyBestFit: return "VmaAllocationCreateStrategyBestFit";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyWorstFit: return "VmaAllocationCreateStrategyWorstFit";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyFirstFit: return "VmaAllocationCreateStrategyFirstFit";
-      case AllocationCreateFlagBits::eVmaAllocationCreateStrategyMask: return "VmaAllocationCreateStrategyMask";
+      case AllocationCreateFlagBits::eDedicatedMemory: return "DedicatedMemory";
+      case AllocationCreateFlagBits::eNeverAllocate: return "NeverAllocate";
+      case AllocationCreateFlagBits::eMapped: return "Mapped";
+      case AllocationCreateFlagBits::eCanBecomeLost: return "CanBecomeLost";
+      case AllocationCreateFlagBits::eCanMakeOtherLost: return "CanMakeOtherLost";
+      case AllocationCreateFlagBits::eUserDataCopyString: return "UserDataCopyString";
+      case AllocationCreateFlagBits::eUpperAddress: return "UpperAddress";
+      case AllocationCreateFlagBits::eDontBind: return "DontBind";
+      case AllocationCreateFlagBits::eWithinBudget: return "WithinBudget";
+      case AllocationCreateFlagBits::eStrategyBestFit: return "StrategyBestFit";
+      case AllocationCreateFlagBits::eStrategyWorstFit: return "StrategyWorstFit";
+      case AllocationCreateFlagBits::eStrategyFirstFit: return "StrategyFirstFit";
+      case AllocationCreateFlagBits::eStrategyMask: return "StrategyMask";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
 
   enum class AllocatorCreateFlagBits : VkmaAllocatorCreateFlags
   {
-    eVmaAllocatorCreateExternallySynchronized = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
-    eVmaAllocatorCreateKhrDedicatedAllocation = VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT,
-    eVmaAllocatorCreateKhrBindMemory2         = VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT,
-    eVmaAllocatorCreateExtMemoryBudget        = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT
+    eExternallySynchronized = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
+    eKhrDedicatedAllocation = VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT,
+    eKhrBindMemory2         = VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT,
+    eExtMemoryBudget        = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT
   };
 
   VKMA_INLINE std::string to_string( AllocatorCreateFlagBits value )
   {
     switch ( value )
     {
-      case AllocatorCreateFlagBits::eVmaAllocatorCreateExternallySynchronized:
-        return "VmaAllocatorCreateExternallySynchronized";
-      case AllocatorCreateFlagBits::eVmaAllocatorCreateKhrDedicatedAllocation:
-        return "VmaAllocatorCreateKhrDedicatedAllocation";
-      case AllocatorCreateFlagBits::eVmaAllocatorCreateKhrBindMemory2: return "VmaAllocatorCreateKhrBindMemory2";
-      case AllocatorCreateFlagBits::eVmaAllocatorCreateExtMemoryBudget: return "VmaAllocatorCreateExtMemoryBudget";
+      case AllocatorCreateFlagBits::eExternallySynchronized: return "ExternallySynchronized";
+      case AllocatorCreateFlagBits::eKhrDedicatedAllocation: return "KhrDedicatedAllocation";
+      case AllocatorCreateFlagBits::eKhrBindMemory2: return "KhrBindMemory2";
+      case AllocatorCreateFlagBits::eExtMemoryBudget: return "ExtMemoryBudget";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
@@ -1815,61 +1812,60 @@ namespace VKMA_NAMESPACE
 
   enum class MemoryUsage
   {
-    eVmaMemoryUsageUnknown            = VMA_MEMORY_USAGE_UNKNOWN,
-    eVmaMemoryUsageGpuOnly            = VMA_MEMORY_USAGE_GPU_ONLY,
-    eVmaMemoryUsageCpuOnly            = VMA_MEMORY_USAGE_CPU_ONLY,
-    eVmaMemoryUsageCpuToGpu           = VMA_MEMORY_USAGE_CPU_TO_GPU,
-    eVmaMemoryUsageGpuToCpu           = VMA_MEMORY_USAGE_GPU_TO_CPU,
-    eVmaMemoryUsageCpuCopy            = VMA_MEMORY_USAGE_CPU_COPY,
-    eVmaMemoryUsageGpuLazilyAllocated = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED
+    eUnknown            = VMA_MEMORY_USAGE_UNKNOWN,
+    eGpuOnly            = VMA_MEMORY_USAGE_GPU_ONLY,
+    eCpuOnly            = VMA_MEMORY_USAGE_CPU_ONLY,
+    eCpuToGpu           = VMA_MEMORY_USAGE_CPU_TO_GPU,
+    eGpuToCpu           = VMA_MEMORY_USAGE_GPU_TO_CPU,
+    eCpuCopy            = VMA_MEMORY_USAGE_CPU_COPY,
+    eGpuLazilyAllocated = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED
   };
 
   VKMA_INLINE std::string to_string( MemoryUsage value )
   {
     switch ( value )
     {
-      case MemoryUsage::eVmaMemoryUsageUnknown: return "VmaMemoryUsageUnknown";
-      case MemoryUsage::eVmaMemoryUsageGpuOnly: return "VmaMemoryUsageGpuOnly";
-      case MemoryUsage::eVmaMemoryUsageCpuOnly: return "VmaMemoryUsageCpuOnly";
-      case MemoryUsage::eVmaMemoryUsageCpuToGpu: return "VmaMemoryUsageCpuToGpu";
-      case MemoryUsage::eVmaMemoryUsageGpuToCpu: return "VmaMemoryUsageGpuToCpu";
-      case MemoryUsage::eVmaMemoryUsageCpuCopy: return "VmaMemoryUsageCpuCopy";
-      case MemoryUsage::eVmaMemoryUsageGpuLazilyAllocated: return "VmaMemoryUsageGpuLazilyAllocated";
+      case MemoryUsage::eUnknown: return "Unknown";
+      case MemoryUsage::eGpuOnly: return "GpuOnly";
+      case MemoryUsage::eCpuOnly: return "CpuOnly";
+      case MemoryUsage::eCpuToGpu: return "CpuToGpu";
+      case MemoryUsage::eGpuToCpu: return "GpuToCpu";
+      case MemoryUsage::eCpuCopy: return "CpuCopy";
+      case MemoryUsage::eGpuLazilyAllocated: return "GpuLazilyAllocated";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
 
   enum class PoolCreateFlagBits : VkmaPoolCreateFlags
   {
-    eVmaPoolCreateIgnoreBufferImageGranularity = VMA_POOL_CREATE_IGNORE_BUFFER_IMAGE_GRANULARITY_BIT,
-    eVmaPoolCreateLinearAlgorithm              = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
-    eVmaPoolCreateBuddyAlgorithm               = VMA_POOL_CREATE_BUDDY_ALGORITHM_BIT,
-    eVmaPoolCreateAlgorithmMask                = VMA_POOL_CREATE_ALGORITHM_MASK
+    eIgnoreBufferImageGranularity = VMA_POOL_CREATE_IGNORE_BUFFER_IMAGE_GRANULARITY_BIT,
+    eLinearAlgorithm              = VMA_POOL_CREATE_LINEAR_ALGORITHM_BIT,
+    eBuddyAlgorithm               = VMA_POOL_CREATE_BUDDY_ALGORITHM_BIT,
+    eAlgorithmMask                = VMA_POOL_CREATE_ALGORITHM_MASK
   };
 
   VKMA_INLINE std::string to_string( PoolCreateFlagBits value )
   {
     switch ( value )
     {
-      case PoolCreateFlagBits::eVmaPoolCreateIgnoreBufferImageGranularity:
-        return "VmaPoolCreateIgnoreBufferImageGranularity";
-      case PoolCreateFlagBits::eVmaPoolCreateLinearAlgorithm: return "VmaPoolCreateLinearAlgorithm";
-      case PoolCreateFlagBits::eVmaPoolCreateBuddyAlgorithm: return "VmaPoolCreateBuddyAlgorithm";
-      case PoolCreateFlagBits::eVmaPoolCreateAlgorithmMask: return "VmaPoolCreateAlgorithmMask";
+      case PoolCreateFlagBits::eIgnoreBufferImageGranularity: return "IgnoreBufferImageGranularity";
+      case PoolCreateFlagBits::eLinearAlgorithm: return "LinearAlgorithm";
+      case PoolCreateFlagBits::eBuddyAlgorithm: return "BuddyAlgorithm";
+      case PoolCreateFlagBits::eAlgorithmMask: return "AlgorithmMask";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
 
   enum class RecordFlagBits : VkmaRecordFlags
   {
-    eVmaRecordFlushAfterCall = VMA_RECORD_FLUSH_AFTER_CALL_BIT
+    eFlushAfterCall = VMA_RECORD_FLUSH_AFTER_CALL_BIT
   };
 
   VKMA_INLINE std::string to_string( RecordFlagBits value )
   {
     switch ( value )
     {
-      case RecordFlagBits::eVmaRecordFlushAfterCall: return "VmaRecordFlushAfterCall";
+      case RecordFlagBits::eFlushAfterCall: return "FlushAfterCall";
       default: return "invalid ( " + VKMA_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }
   }
@@ -1975,19 +1971,14 @@ namespace VKMA_NAMESPACE
   {
     enum : VkFlags
     {
-      allFlags = VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateDedicatedMemory ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateNeverAllocate ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateMapped ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateCanBecomeLost ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateCanMakeOtherLost ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateUserDataCopyString ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateUpperAddress ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateDontBind ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateWithinBudget ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyBestFit ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyWorstFit ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyFirstFit ) |
-                 VkFlags( AllocationCreateFlagBits::eVmaAllocationCreateStrategyMask )
+      allFlags =
+        VkFlags( AllocationCreateFlagBits::eDedicatedMemory ) | VkFlags( AllocationCreateFlagBits::eNeverAllocate ) |
+        VkFlags( AllocationCreateFlagBits::eMapped ) | VkFlags( AllocationCreateFlagBits::eCanBecomeLost ) |
+        VkFlags( AllocationCreateFlagBits::eCanMakeOtherLost ) |
+        VkFlags( AllocationCreateFlagBits::eUserDataCopyString ) | VkFlags( AllocationCreateFlagBits::eUpperAddress ) |
+        VkFlags( AllocationCreateFlagBits::eDontBind ) | VkFlags( AllocationCreateFlagBits::eWithinBudget ) |
+        VkFlags( AllocationCreateFlagBits::eStrategyBestFit ) | VkFlags( AllocationCreateFlagBits::eStrategyWorstFit ) |
+        VkFlags( AllocationCreateFlagBits::eStrategyFirstFit ) | VkFlags( AllocationCreateFlagBits::eStrategyMask )
     };
   };
 
@@ -2030,10 +2021,10 @@ namespace VKMA_NAMESPACE
   {
     enum : VkFlags
     {
-      allFlags = VkFlags( AllocatorCreateFlagBits::eVmaAllocatorCreateExternallySynchronized ) |
-                 VkFlags( AllocatorCreateFlagBits::eVmaAllocatorCreateKhrDedicatedAllocation ) |
-                 VkFlags( AllocatorCreateFlagBits::eVmaAllocatorCreateKhrBindMemory2 ) |
-                 VkFlags( AllocatorCreateFlagBits::eVmaAllocatorCreateExtMemoryBudget )
+      allFlags = VkFlags( AllocatorCreateFlagBits::eExternallySynchronized ) |
+                 VkFlags( AllocatorCreateFlagBits::eKhrDedicatedAllocation ) |
+                 VkFlags( AllocatorCreateFlagBits::eKhrBindMemory2 ) |
+                 VkFlags( AllocatorCreateFlagBits::eExtMemoryBudget )
     };
   };
 
@@ -2083,10 +2074,9 @@ namespace VKMA_NAMESPACE
   {
     enum : VkFlags
     {
-      allFlags = VkFlags( PoolCreateFlagBits::eVmaPoolCreateIgnoreBufferImageGranularity ) |
-                 VkFlags( PoolCreateFlagBits::eVmaPoolCreateLinearAlgorithm ) |
-                 VkFlags( PoolCreateFlagBits::eVmaPoolCreateBuddyAlgorithm ) |
-                 VkFlags( PoolCreateFlagBits::eVmaPoolCreateAlgorithmMask )
+      allFlags = VkFlags( PoolCreateFlagBits::eIgnoreBufferImageGranularity ) |
+                 VkFlags( PoolCreateFlagBits::eLinearAlgorithm ) | VkFlags( PoolCreateFlagBits::eBuddyAlgorithm ) |
+                 VkFlags( PoolCreateFlagBits::eAlgorithmMask )
     };
   };
 
@@ -2126,7 +2116,7 @@ namespace VKMA_NAMESPACE
   {
     enum : VkFlags
     {
-      allFlags = VkFlags( RecordFlagBits::eVmaRecordFlushAfterCall )
+      allFlags = VkFlags( RecordFlagBits::eFlushAfterCall )
     };
   };
 
@@ -2914,8 +2904,8 @@ namespace VKMA_NAMESPACE
   struct AllocationCreateInfo
   {
 #if !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
-    VKMA_CONSTEXPR AllocationCreateInfo( AllocationCreateFlags flags_ = {},
-                                         MemoryUsage usage_ = VKMA_NAMESPACE::MemoryUsage::eVmaMemoryUsageUnknown,
+    VKMA_CONSTEXPR AllocationCreateInfo( AllocationCreateFlags flags_          = {},
+                                         MemoryUsage           usage_          = VKMA_NAMESPACE::MemoryUsage::eUnknown,
                                          VkMemoryPropertyFlags requiredFlags_  = {},
                                          VkMemoryPropertyFlags preferredFlags_ = {},
                                          uint32_t              memoryTypeBits_ = {},
@@ -3028,7 +3018,7 @@ namespace VKMA_NAMESPACE
 
   public:
     AllocationCreateFlags flags          = {};
-    MemoryUsage           usage          = VKMA_NAMESPACE::MemoryUsage::eVmaMemoryUsageUnknown;
+    MemoryUsage           usage          = VKMA_NAMESPACE::MemoryUsage::eUnknown;
     VkMemoryPropertyFlags requiredFlags  = {};
     VkMemoryPropertyFlags preferredFlags = {};
     uint32_t              memoryTypeBits = {};
