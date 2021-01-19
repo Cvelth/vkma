@@ -848,6 +848,11 @@ namespace VKMA_NAMESPACE
       , m_ptr( ptr )
     {}
 
+#  if __GNUC__ >= 9
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#  endif
+
     ArrayProxy( std::initializer_list<T> const & list ) VKMA_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
@@ -869,6 +874,10 @@ namespace VKMA_NAMESPACE
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
+
+#  if __GNUC__ >= 9
+#    pragma GCC diagnostic pop
+#  endif
 
     template <size_t N>
     ArrayProxy( std::array<T, N> const & data ) VKMA_NOEXCEPT
@@ -2985,20 +2994,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR AllocationCreateInfo( AllocationCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocationCreateInfo( VkmaAllocationCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : AllocationCreateInfo( *reinterpret_cast<AllocationCreateInfo const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 AllocationCreateInfo & operator=( AllocationCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocationCreateInfo & operator=( VkmaAllocationCreateInfo const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::AllocationCreateInfo const *>( &rhs );
-      return *this;
-    }
-
-    AllocationCreateInfo & operator=( AllocationCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( AllocationCreateInfo ) );
       return *this;
     }
 
@@ -3110,20 +3114,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR AllocationInfo( AllocationInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocationInfo( VkmaAllocationInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : AllocationInfo( *reinterpret_cast<AllocationInfo const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 AllocationInfo & operator=( AllocationInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocationInfo & operator=( VkmaAllocationInfo const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::AllocationInfo const *>( &rhs );
-      return *this;
-    }
-
-    AllocationInfo & operator=( AllocationInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( AllocationInfo ) );
       return *this;
     }
 
@@ -3213,20 +3212,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR DeviceMemoryCallbacks( DeviceMemoryCallbacks const & rhs ) VKMA_NOEXCEPT = default;
 
     DeviceMemoryCallbacks( VkmaDeviceMemoryCallbacks const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : DeviceMemoryCallbacks( *reinterpret_cast<DeviceMemoryCallbacks const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 DeviceMemoryCallbacks & operator=( DeviceMemoryCallbacks const & rhs ) VKMA_NOEXCEPT = default;
 
     DeviceMemoryCallbacks & operator=( VkmaDeviceMemoryCallbacks const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::DeviceMemoryCallbacks const *>( &rhs );
-      return *this;
-    }
-
-    DeviceMemoryCallbacks & operator=( DeviceMemoryCallbacks const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( DeviceMemoryCallbacks ) );
       return *this;
     }
 
@@ -3334,20 +3328,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR VulkanFunctions( VulkanFunctions const & rhs ) VKMA_NOEXCEPT = default;
 
     VulkanFunctions( VkmaVulkanFunctions const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : VulkanFunctions( *reinterpret_cast<VulkanFunctions const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 VulkanFunctions & operator=( VulkanFunctions const & rhs ) VKMA_NOEXCEPT = default;
 
     VulkanFunctions & operator=( VkmaVulkanFunctions const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::VulkanFunctions const *>( &rhs );
-      return *this;
-    }
-
-    VulkanFunctions & operator=( VulkanFunctions const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( VulkanFunctions ) );
       return *this;
     }
 
@@ -3571,20 +3560,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR RecordSettings( RecordSettings const & rhs ) VKMA_NOEXCEPT = default;
 
     RecordSettings( VkmaRecordSettings const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : RecordSettings( *reinterpret_cast<RecordSettings const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 RecordSettings & operator=( RecordSettings const & rhs ) VKMA_NOEXCEPT = default;
 
     RecordSettings & operator=( VkmaRecordSettings const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::RecordSettings const *>( &rhs );
-      return *this;
-    }
-
-    RecordSettings & operator=( RecordSettings const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( RecordSettings ) );
       return *this;
     }
 
@@ -3663,20 +3647,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR AllocatorCreateInfo( AllocatorCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocatorCreateInfo( VkmaAllocatorCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : AllocatorCreateInfo( *reinterpret_cast<AllocatorCreateInfo const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 AllocatorCreateInfo & operator=( AllocatorCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     AllocatorCreateInfo & operator=( VkmaAllocatorCreateInfo const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::AllocatorCreateInfo const *>( &rhs );
-      return *this;
-    }
-
-    AllocatorCreateInfo & operator=( AllocatorCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( AllocatorCreateInfo ) );
       return *this;
     }
 
@@ -3816,21 +3795,14 @@ namespace VKMA_NAMESPACE
 
     VKMA_CONSTEXPR Budget( Budget const & rhs ) VKMA_NOEXCEPT = default;
 
-    Budget( VkmaBudget const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+    Budget( VkmaBudget const & rhs ) VKMA_NOEXCEPT : Budget( *reinterpret_cast<Budget const *>( &rhs ) ) {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 Budget & operator=( Budget const & rhs ) VKMA_NOEXCEPT = default;
 
     Budget & operator=( VkmaBudget const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::Budget const *>( &rhs );
-      return *this;
-    }
-
-    Budget & operator=( Budget const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( Budget ) );
       return *this;
     }
 
@@ -3994,20 +3966,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR DefragmentationInfo2( DefragmentationInfo2 const & rhs ) VKMA_NOEXCEPT = default;
 
     DefragmentationInfo2( VkmaDefragmentationInfo2 const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : DefragmentationInfo2( *reinterpret_cast<DefragmentationInfo2 const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 DefragmentationInfo2 & operator=( DefragmentationInfo2 const & rhs ) VKMA_NOEXCEPT = default;
 
     DefragmentationInfo2 & operator=( VkmaDefragmentationInfo2 const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::DefragmentationInfo2 const *>( &rhs );
-      return *this;
-    }
-
-    DefragmentationInfo2 & operator=( DefragmentationInfo2 const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( DefragmentationInfo2 ) );
       return *this;
     }
 
@@ -4140,20 +4107,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR DefragmentationStats( DefragmentationStats const & rhs ) VKMA_NOEXCEPT = default;
 
     DefragmentationStats( VkmaDefragmentationStats const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : DefragmentationStats( *reinterpret_cast<DefragmentationStats const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 DefragmentationStats & operator=( DefragmentationStats const & rhs ) VKMA_NOEXCEPT = default;
 
     DefragmentationStats & operator=( VkmaDefragmentationStats const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::DefragmentationStats const *>( &rhs );
-      return *this;
-    }
-
-    DefragmentationStats & operator=( DefragmentationStats const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( DefragmentationStats ) );
       return *this;
     }
 
@@ -4238,20 +4200,15 @@ namespace VKMA_NAMESPACE
     VKMA_CONSTEXPR PoolCreateInfo( PoolCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     PoolCreateInfo( VkmaPoolCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+      : PoolCreateInfo( *reinterpret_cast<PoolCreateInfo const *>( &rhs ) )
+    {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 PoolCreateInfo & operator=( PoolCreateInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     PoolCreateInfo & operator=( VkmaPoolCreateInfo const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::PoolCreateInfo const *>( &rhs );
-      return *this;
-    }
-
-    PoolCreateInfo & operator=( PoolCreateInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( PoolCreateInfo ) );
       return *this;
     }
 
@@ -4354,21 +4311,14 @@ namespace VKMA_NAMESPACE
 
     VKMA_CONSTEXPR PoolStats( PoolStats const & rhs ) VKMA_NOEXCEPT = default;
 
-    PoolStats( VkmaPoolStats const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+    PoolStats( VkmaPoolStats const & rhs ) VKMA_NOEXCEPT : PoolStats( *reinterpret_cast<PoolStats const *>( &rhs ) ) {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 PoolStats & operator=( PoolStats const & rhs ) VKMA_NOEXCEPT = default;
 
     PoolStats & operator=( VkmaPoolStats const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::PoolStats const *>( &rhs );
-      return *this;
-    }
-
-    PoolStats & operator=( PoolStats const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( PoolStats ) );
       return *this;
     }
 
@@ -4474,21 +4424,14 @@ namespace VKMA_NAMESPACE
 
     VKMA_CONSTEXPR StatInfo( StatInfo const & rhs ) VKMA_NOEXCEPT = default;
 
-    StatInfo( VkmaStatInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+    StatInfo( VkmaStatInfo const & rhs ) VKMA_NOEXCEPT : StatInfo( *reinterpret_cast<StatInfo const *>( &rhs ) ) {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 StatInfo & operator=( StatInfo const & rhs ) VKMA_NOEXCEPT = default;
 
     StatInfo & operator=( VkmaStatInfo const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::StatInfo const *>( &rhs );
-      return *this;
-    }
-
-    StatInfo & operator=( StatInfo const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( StatInfo ) );
       return *this;
     }
 
@@ -4616,21 +4559,14 @@ namespace VKMA_NAMESPACE
 
     VKMA_CONSTEXPR_14 Stats( Stats const & rhs ) VKMA_NOEXCEPT = default;
 
-    Stats( VkmaStats const & rhs ) VKMA_NOEXCEPT
-    {
-      *this = rhs;
-    }
+    Stats( VkmaStats const & rhs ) VKMA_NOEXCEPT : Stats( *reinterpret_cast<Stats const *>( &rhs ) ) {}
 #endif  // !defined( VKMA_NO_STRUCT_CONSTRUCTORS )
+
+    VKMA_CONSTEXPR_14 Stats & operator=( Stats const & rhs ) VKMA_NOEXCEPT = default;
 
     Stats & operator=( VkmaStats const & rhs ) VKMA_NOEXCEPT
     {
       *this = *reinterpret_cast<VKMA_NAMESPACE::Stats const *>( &rhs );
-      return *this;
-    }
-
-    Stats & operator=( Stats const & rhs ) VKMA_NOEXCEPT
-    {
-      memcpy( static_cast<void *>( this ), &rhs, sizeof( Stats ) );
       return *this;
     }
 
