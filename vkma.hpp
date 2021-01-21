@@ -155,6 +155,10 @@ include all public interface declarations. Example:
 #    pragma warning( pop )
 #  endif
 
+#  ifndef VKMA_ASSERT
+#    define VKMA_ASSERT VMA_ASSERT
+#  endif
+
 #  define VKMA_NULL_HANDLE VK_NULL_HANDLE
 
 VK_DEFINE_HANDLE( VkmaAllocator )                                // parent: none
@@ -349,21 +353,21 @@ inline void vkmaDestroyAllocator( VkmaAllocator allocator )
 inline void vkmaGetPhysicalDeviceProperties( VkmaAllocator                allocator,
                                              VkPhysicalDeviceProperties * pPhysicalDeviceProperties )
 {
-  VMA_ASSERT( pPhysicalDeviceProperties );
+  VKMA_ASSERT( pPhysicalDeviceProperties );
   const VkPhysicalDeviceProperties * temp = nullptr;
   vmaGetPhysicalDeviceProperties( reinterpret_cast<VmaAllocator>( allocator ), &temp );
 
-  VMA_ASSERT( temp );
+  VKMA_ASSERT( temp );
   memcpy( pPhysicalDeviceProperties, temp, sizeof( VkPhysicalDeviceProperties ) );
 }
 inline void vkmaGetMemoryProperties( VkmaAllocator                      allocator,
                                      VkPhysicalDeviceMemoryProperties * pPhysicalDeviceMemoryProperties )
 {
-  VMA_ASSERT( pPhysicalDeviceMemoryProperties );
+  VKMA_ASSERT( pPhysicalDeviceMemoryProperties );
   const VkPhysicalDeviceMemoryProperties * temp = nullptr;
   vmaGetMemoryProperties( reinterpret_cast<VmaAllocator>( allocator ), &temp );
 
-  VMA_ASSERT( temp );
+  VKMA_ASSERT( temp );
   memcpy( pPhysicalDeviceMemoryProperties, temp, sizeof( VkPhysicalDeviceMemoryProperties ) );
 }
 inline void
@@ -623,7 +627,7 @@ inline VkmaResult vkmaCreateBuffer( VkmaAllocator                    allocator,
                                     const VkmaAllocationCreateInfo * pAllocationCreateInfo,
                                     VkmaBuffer *                     pBuffer )
 {
-  VMA_ASSERT( pBuffer );
+  VKMA_ASSERT( pBuffer );
   *pBuffer = reinterpret_cast<VkmaBuffer>( new VkmaBuffer_T{} );
   return vmaCreateBuffer(
     reinterpret_cast<VmaAllocator>( allocator ),
@@ -635,7 +639,7 @@ inline VkmaResult vkmaCreateBuffer( VkmaAllocator                    allocator,
 }
 inline void vkmaDestroyBuffer( VkmaAllocator allocator, VkmaBuffer buffer )
 {
-  VMA_ASSERT( buffer );
+  VKMA_ASSERT( buffer );
   vmaDestroyBuffer( reinterpret_cast<VmaAllocator>( allocator ),
                     reinterpret_cast<VkmaBuffer_T *>( buffer )->buffer,
                     reinterpret_cast<VmaAllocation>( reinterpret_cast<VkmaBuffer_T *>( buffer )->allocation ) );
@@ -646,7 +650,7 @@ inline VkmaResult vkmaCreateImage( VkmaAllocator                    allocator,
                                    const VkmaAllocationCreateInfo * pAllocationCreateInfo,
                                    VkmaImage *                      pImage )
 {
-  VMA_ASSERT( pImage );
+  VKMA_ASSERT( pImage );
   *pImage = reinterpret_cast<VkmaImage>( new VkmaImage_T{} );
   return vmaCreateImage( reinterpret_cast<VmaAllocator>( allocator ),
                          pImageCreateInfo,
@@ -657,7 +661,7 @@ inline VkmaResult vkmaCreateImage( VkmaAllocator                    allocator,
 }
 inline void vkmaDestroyImage( VkmaAllocator allocator, VkmaImage image )
 {
-  VMA_ASSERT( image );
+  VKMA_ASSERT( image );
   vmaDestroyImage( reinterpret_cast<VmaAllocator>( allocator ),
                    reinterpret_cast<VkmaImage_T *>( image )->image,
                    reinterpret_cast<VmaAllocation>( reinterpret_cast<VkmaImage_T *>( image )->allocation ) );
@@ -666,22 +670,22 @@ inline void vkmaDestroyImage( VkmaAllocator allocator, VkmaImage image )
 
 inline void vkmaGetBuffer( VkmaBuffer buffer, VkBuffer * pBuffer )
 {
-  VMA_ASSERT( pBuffer );
+  VKMA_ASSERT( pBuffer );
   *pBuffer = reinterpret_cast<VkmaBuffer_T *>( buffer )->buffer;
 }
 inline void vkmaGetBufferAllocation( VkmaBuffer buffer, VkmaAllocation * pAllocation )
 {
-  VMA_ASSERT( pAllocation );
+  VKMA_ASSERT( pAllocation );
   *pAllocation = reinterpret_cast<VkmaBuffer_T *>( buffer )->allocation;
 }
 inline void vkmaGetImage( VkmaImage image, VkImage * pImage )
 {
-  VMA_ASSERT( pImage );
+  VKMA_ASSERT( pImage );
   *pImage = reinterpret_cast<VkmaImage_T *>( image )->image;
 }
 inline void vkmaGetImageAllocation( VkmaImage image, VkmaAllocation * pAllocation )
 {
-  VMA_ASSERT( pAllocation );
+  VKMA_ASSERT( pAllocation );
   *pAllocation = reinterpret_cast<VkmaImage_T *>( image )->allocation;
 }
 
