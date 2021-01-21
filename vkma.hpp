@@ -529,7 +529,7 @@ inline void
   vmaGetAllocationInfo(
     reinterpret_cast<VmaAllocator>( allocator ), reinterpret_cast<VmaAllocation>( allocation ), pAllocationInfo );
 }
-VkBool32 vkmaTouchAllocation( VkmaAllocator allocator, VkmaAllocation allocation )
+inline VkBool32 vkmaTouchAllocation( VkmaAllocator allocator, VkmaAllocation allocation )
 {
   return vmaTouchAllocation( reinterpret_cast<VmaAllocator>( allocator ),
                              reinterpret_cast<VmaAllocation>( allocation ) );
